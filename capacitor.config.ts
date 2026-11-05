@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.rilsteel.maniapp',
-  appName: 'Mani App',
+  appName: 'Lega',
   webDir: 'dist',
   plugins: {
     StatusBar: {

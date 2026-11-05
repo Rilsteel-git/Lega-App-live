@@ -1,5 +1,5 @@
 /* ============================================================
-   Mani App — app layer
+   Lega — app layer
    Dibangun di atas css/design-system.css (token & komponen).
    Hanya berisi pola yang belum ada di design system.
    ============================================================ */
@@ -309,8 +309,8 @@
 }
 .range-date-value { cursor: pointer }
 .range-date-value.active {
-  border-color: #8bd39a;
-  box-shadow: 0 0 0 3px rgba(139, 211, 154, .18);
+  border-color: #74c49b;
+  box-shadow: 0 0 0 3px rgba(116, 196, 155, .22);
 }
 .calendar-day.in-range {
   border-radius: 0;
@@ -390,8 +390,8 @@
 .category-row:not(.archived) { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none }
 .category-row:not(.archived) button { cursor: pointer }
 .category-row.dragging { cursor: grabbing }
-.category-row.dragging { position: relative; z-index: 2; border-radius: 12px; background: #effbef; box-shadow: 0 6px 18px rgba(0, 143, 29, .12) }
-.category-row:focus-visible { outline: 2px solid #8bd39a; outline-offset: 2px }
+.category-row.dragging { position: relative; z-index: 2; border-radius: 12px; background: #eff8f3; box-shadow: 0 6px 18px rgba(0, 143, 29, .12) }
+.category-row:focus-visible { outline: 2px solid #74c49b; outline-offset: 2px }
 .modal-foot #wallet-delete[hidden],
 .modal-foot #transaction-delete[hidden] { display: none !important }
 .category-modal #category-form { padding-bottom: 28px }

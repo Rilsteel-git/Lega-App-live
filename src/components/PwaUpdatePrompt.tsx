@@ -10,7 +10,7 @@ export function PwaUpdatePrompt() {
 
   return (
     <div className="pwa-update-prompt" role="status">
-      <span>A new version of Mani App is available.</span>
+      <span>A new version of Lega is available.</span>
       <div className="pwa-update-actions">
         <button type="button" onClick={() => setNeedRefresh(false)}>Later</button>
         <button type="button" onClick={() => void updateServiceWorker(true)}>Update</button>

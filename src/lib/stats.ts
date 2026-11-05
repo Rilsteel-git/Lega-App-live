@@ -30,7 +30,7 @@ import { inRange, resolveCategory, totals } from './selectors';
 
 /** Warna kategori berurutan sesuai design system (merah dicadangkan untuk expense). */
 export const PALETTE = [
-  '#008f1d', '#31bc62', '#0284c7', '#d97706',
+  '#0b7a43', '#31bc62', '#0284c7', '#d97706',
   '#7c3aed', '#08acc9', '#b45309', '#0f766e'
 ];
 

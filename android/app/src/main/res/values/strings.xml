@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Mani App</string>
-    <string name="title_activity_main">Mani App</string>
+    <string name="app_name">Lega</string>
+    <string name="title_activity_main">Lega</string>
     <string name="package_name">com.rilsteel.maniapp</string>
     <string name="custom_url_scheme">com.rilsteel.maniapp</string>
 </resources>

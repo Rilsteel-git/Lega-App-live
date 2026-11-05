@@ -2,7 +2,7 @@
    UiContext.tsx — state UI global yang di app vanilla dipegang
    oleh js/ui.js + js/main.js: toast, confirm dialog, modal yang
    bisa dibuka dari halaman mana saja, dan preferensi
-   "sembunyikan saldo" (localStorage `mani:hide-balance`).
+   "sembunyikan saldo" (localStorage `lega:hide-balance`).
    ============================================================ */
 
 import {
@@ -22,11 +22,21 @@ export const EMPTY_FILTERS: TransactionFilters = {
   search: '', walletId: '', categoryId: '', type: '', from: '', to: '', currency: ''
 };
 
-const HIDE_KEY = 'mani:hide-balance';
+const HIDE_KEY = 'lega:hide-balance';
+/** Key sebelum rebranding; dibaca sekali supaya preferensi lama tidak hilang. */
+const LEGACY_HIDE_KEY = 'mani:hide-balance';
 const MASK = 'Rp' + '•'.repeat(6);
 
 function readHidden(): boolean {
-  try { return window.localStorage.getItem(HIDE_KEY) === '1'; } catch { return false; }
+  try {
+    const current = window.localStorage.getItem(HIDE_KEY);
+    if (current !== null) return current === '1';
+    const legacy = window.localStorage.getItem(LEGACY_HIDE_KEY);
+    if (legacy === null) return false;
+    window.localStorage.setItem(HIDE_KEY, legacy);
+    window.localStorage.removeItem(LEGACY_HIDE_KEY);
+    return legacy === '1';
+  } catch { return false; }
 }
 
 function writeHidden(value: boolean) {

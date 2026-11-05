@@ -301,12 +301,61 @@ export function useOutsideClose(
 /* ============================================================
    LOADING
    ============================================================ */
+
+/** Logo mark Lega sebagai inline SVG. Memakai currentColor supaya bisa
+ *  dipakai di atas kanvas terang (hijau) maupun di atas hijau (putih). */
+export function LegaMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ? `lega-mark ${className}` : 'lega-mark'}
+      viewBox="28 16 76 88"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M36 24 V68 C36 84 48 96 64 96 C80 96 92 86 96 70"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={16}
+        strokeLinecap="round"
+      />
+      <circle cx={86} cy={34} r={13} fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Versi animasi dari <LegaMark />: garisnya menggambar dirinya sendiri, lalu
+ *  koinnya jatuh ke tempatnya. Animasi dimatikan saat prefers-reduced-motion. */
+export function LegaLoader({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ? `lega-loader ${className}` : 'lega-loader'}
+      viewBox="16 4 100 112"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g className="lega-loader-fade">
+        <path
+          className="lega-loader-stroke"
+          pathLength={100}
+          d="M36 24 V68 C36 84 48 96 64 96 C80 96 92 86 96 70"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={16}
+          strokeLinecap="round"
+        />
+        <circle className="lega-loader-coin" cx={86} cy={34} r={13} fill="currentColor" />
+      </g>
+    </svg>
+  );
+}
+
 export function PageSkeleton() {
   return (
-    <div className="mani-page-skeleton" aria-hidden="true">
+    <div className="lega-page-skeleton" aria-hidden="true">
       {[0, 1, 2].map((item) => (
-        <div className="card mani-skeleton-card" key={item}>
-          <div className="mani-skeleton"><span /><span /><span /></div>
+        <div className="card lega-skeleton-card" key={item}>
+          <div className="lega-skeleton"><span /><span /><span /></div>
         </div>
       ))}
     </div>
@@ -314,16 +363,16 @@ export function PageSkeleton() {
 }
 
 /** Loader kecil di ujung daftar yang dimuat bertahap (bukan overlay layar
- *  penuh seperti <Loading />). Pakai logo yang sama supaya konsisten. */
+ *  penuh seperti <Loading />). Pakai mark yang sama supaya konsisten. */
 export function InlineLoader({ label = 'Loading more' }: { label?: string }) {
   return (
-    <div className="mani-inline-loader" role="status" aria-label={label} aria-live="polite">
-      <img className="mani-inline-loader-logo" src="/mani-app-logo.png" alt="" aria-hidden="true" />
+    <div className="lega-inline-loader" role="status" aria-label={label} aria-live="polite">
+      <LegaLoader className="lega-inline-loader-mark" />
     </div>
   );
 }
 
-export function Loading({ message = 'Memuat Mani' }: { message?: string }) {
+export function Loading({ message = 'Memuat Lega' }: { message?: string }) {
   useEffect(() => {
     const root = document.getElementById('root');
     const wasInert = root?.inert ?? false;
@@ -336,8 +385,8 @@ export function Loading({ message = 'Memuat Mani' }: { message?: string }) {
     };
   }, []);
   return createPortal(
-    <div className="mani-loading-overlay" role="status" aria-label={message} aria-live="polite">
-      <img className="mani-loading-logo" src="/mani-app-logo.png" alt="" aria-hidden="true" />
+    <div className="lega-loading-overlay" role="status" aria-label={message} aria-live="polite">
+      <LegaLoader className="lega-loading-mark" />
     </div>,
     document.body
   );

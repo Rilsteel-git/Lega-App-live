@@ -136,7 +136,7 @@ export function AuthPage() {
     document.body.classList.add('auth-route');
     return () => {
       document.body.classList.remove('auth-route');
-      document.title = 'Mani App';
+      document.title = 'Lega';
     };
   }, []);
 
@@ -147,7 +147,7 @@ export function AuthPage() {
       'forgot-password': 'Forgot password',
       'reset-password': 'Create new password'
     };
-    document.title = `${titles[route]} · Mani App`;
+    document.title = `${titles[route]} · Lega`;
   }, [route]);
 
   function showLoginAfterRegister(message: string) {
@@ -257,14 +257,14 @@ export function AuthPage() {
       <div className="auth-layout">
         <main className="auth-content">
           <div className="auth-mobile-brand">
-            <img src="/mani-app-logo.png" alt="" />
-            <span>Mani App</span>
+            <img src="/brand/lega-app-icon.svg" alt="" width={46} height={46} />
+            <span>Lega</span>
           </div>
 
           <section className={`auth-panel${route === 'login' ? ' active' : ''}`} id="page-login" aria-labelledby="login-title">
             <div className="auth-heading">
               <span className="auth-overline">WELCOME BACK</span>
-              <h1 id="login-title">Log in to Mani</h1>
+              <h1 id="login-title">Log in to Lega</h1>
               <p>Pick up where you left off with your money.</p>
             </div>
             <form className="auth-form" onSubmit={submitLogin} noValidate>
@@ -299,7 +299,7 @@ export function AuthPage() {
                 {busy ? 'Please wait…' : <>Log in <Icon name="arrow-right" /></>}
               </button>
             </form>
-            <p className="auth-switch">New to Mani? <a href="#/register">Create an account</a></p>
+            <p className="auth-switch">New to Lega? <a href="#/register">Create an account</a></p>
             <p className="auth-local-note">
               Your account is stored on the server, so the same email and password work on any device.
             </p>
@@ -321,7 +321,7 @@ export function AuthPage() {
                 <div className="auth-heading auth-heading-spaced">
                   <span className="auth-overline">ACCOUNT RECOVERY</span>
                   <h1 id="forgot-password-title">Forgot your password?</h1>
-                  <p>Enter the email linked to your Mani account. We will send you a secure reset link.</p>
+                  <p>Enter the email linked to your Lega account. We will send you a secure reset link.</p>
                 </div>
                 <form className="auth-form" onSubmit={submitForgotPassword} noValidate>
                   <div className={`input${errors.email ? ' error' : ''}`} data-field="email">
@@ -356,7 +356,7 @@ export function AuthPage() {
                 <span className="auth-overline">ALL SET</span>
                 <h1>Password updated</h1>
                 <p>Your password has been changed. Log in with the new password to continue.</p>
-                <a className="btn primary auth-submit" href="#/login">Log in to Mani <Icon name="arrow-right" /></a>
+                <a className="btn primary auth-submit" href="#/login">Log in to Lega <Icon name="arrow-right" /></a>
               </div>
             ) : passwordRecovery ? (
               <>
@@ -401,7 +401,7 @@ export function AuthPage() {
                 <div className="auth-result-icon warning"><Icon name="alert" /></div>
                 <span className="auth-overline">LINK UNAVAILABLE</span>
                 <h1>Reset link expired</h1>
-                <p>Request a new password reset link and open the latest email from Mani App.</p>
+                <p>Request a new password reset link and open the latest email from Lega.</p>
                 <a className="btn primary auth-submit" href="#/forgot-password">Request a new link <Icon name="arrow-right" /></a>
               </div>
             )}
