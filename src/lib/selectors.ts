@@ -216,6 +216,13 @@ export function collapseTransfers(list: Transaction[]): Transaction[] {
   });
 }
 
+/** Aktivitas terbaru untuk dashboard: hanya transaksi yang tanggalnya sudah
+ *  tiba (<= asOf, format YYYY-MM-DD). Transaksi berjangka tetap tersimpan dan
+ *  tampil di daftar lengkap, tapi tidak mengisi "Recent activity". */
+export function recentTransactions(list: Transaction[], asOf: string, limit = 5): Transaction[] {
+  return collapseTransfers(sortTransactions(list.filter((tx) => tx.date <= asOf))).slice(0, limit);
+}
+
 /** Peta pasangan transfer → wallet asal & tujuan, supaya satu baris transfer
  *  bisa menampilkan "Wallet A → Wallet B" walau yang dirender cuma satu leg. */
 export function transferPeers(transactions: Transaction[]): Map<string, TransferPeer> {

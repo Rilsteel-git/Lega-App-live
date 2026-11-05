@@ -72,3 +72,39 @@ test('empty foreign wallet has zero value even if past transaction rates differe
   const spent = [{ ...txs[0], amount: 100000, exchangeRate: 11 }];
   assert.equal(money.convertedBalance([wallets[0]], spent, 1), 0);
 });
+
+test('recentTransactions hides future-dated entries but keeps today and the past', () => {
+  const tx = (id, date, createdAt, extra = {}) => ({
+    id, walletId: 'idr', categoryId: null, type: 'expense', amount: 1000,
+    currency: 'IDR', exchangeRate: 1, date, createdAt, note: '', ...extra
+  });
+  const list = [
+    tx('future', '2026-12-01', '2026-11-01T10:00:00Z'),
+    tx('today', '2026-11-06', '2026-11-06T01:00:00Z'),
+    tx('past', '2026-11-05', '2026-11-05T09:00:00Z')
+  ];
+  const ids = selectors.recentTransactions(list, '2026-11-06').map((t) => t.id);
+  assert.deepEqual(ids, ['today', 'past']);
+  // satu hari kemudian transaksi 1 Des belum tiba; pada 1 Des baru muncul
+  assert.deepEqual(selectors.recentTransactions(list, '2026-11-30').map((t) => t.id), ['today', 'past']);
+  assert.deepEqual(selectors.recentTransactions(list, '2026-12-01').map((t) => t.id), ['future', 'today', 'past']);
+});
+
+test('recentTransactions orders same-day entries by created_at and caps the list at 5', () => {
+  const tx = (id, createdAt) => ({
+    id, walletId: 'idr', categoryId: null, type: 'expense', amount: 1,
+    currency: 'IDR', exchangeRate: 1, date: '2026-11-05', createdAt, note: ''
+  });
+  const list = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, i) => tx(id, `2026-11-05T0${i}:00:00Z`));
+  const ids = selectors.recentTransactions(list, '2026-11-06').map((t) => t.id);
+  assert.deepEqual(ids, ['g', 'f', 'e', 'd', 'c']);
+});
+
+test('recentTransactions still collapses a transfer pair into one row', () => {
+  const leg = (id, walletId, type) => ({
+    id, walletId, categoryId: null, type, amount: 5000, currency: 'IDR', exchangeRate: 1,
+    date: '2026-11-05', createdAt: '2026-11-05T08:00:00Z', note: '', isTransfer: true, transferPairId: 'pair-1'
+  });
+  const list = [leg('out', 'idr', 'expense'), leg('in', 'krw', 'income')];
+  assert.equal(selectors.recentTransactions(list, '2026-11-06').length, 1);
+});

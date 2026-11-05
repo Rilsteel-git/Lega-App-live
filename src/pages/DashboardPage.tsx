@@ -7,9 +7,10 @@ import { useReport } from '../hooks/useReport';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
 import {
-  formatPercent
+  formatPercent,
+  today
 } from '../lib/format';
-import { collapseTransfers, sortTransactions, transferPeers, withBalances } from '../lib/selectors';
+import { recentTransactions, transferPeers, withBalances } from '../lib/selectors';
 import { comparison, periodTotals, range } from '../lib/stats';
 import { Icon } from '../components/IconSprite';
 import { EmptyState } from '../components/Ui';
@@ -31,7 +32,7 @@ export function DashboardPage() {
   const hasSpendingHistory = Boolean(compare.before.expense || compare.current.expense);
   const delta = compare.expenseDelta;
 
-  const recent = collapseTransfers(sortTransactions(nativeTransactions)).slice(0, 5);
+  const recent = recentTransactions(nativeTransactions, today());
   const peers = transferPeers(nativeTransactions);
 
   const badge = !monthTotals.income && !monthTotals.expense
