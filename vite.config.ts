@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'lega-app-icon.png', 'brand/lega-mark.svg', 'brand/lega-app-icon.svg'],
       manifest: {
         id: '/',

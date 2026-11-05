@@ -5,7 +5,6 @@ import { AuthProvider } from './context/AuthContext';
 import { App } from './App';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 
 // The app uses a light canvas at the top of every current page, so use dark
 // status-bar icons. Android 15+ ignores overlaysWebView; SystemBars inset
@@ -29,7 +28,6 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
       <App />
-      {!Capacitor.isNativePlatform() && <PwaUpdatePrompt />}
     </AuthProvider>
   </StrictMode>
 );

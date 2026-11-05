@@ -36,30 +36,6 @@
   }
 }
 
-.pwa-update-prompt {
-  position: fixed;
-  z-index: 10001;
-  right: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
-  left: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #172019;
-  color: #fff;
-  font-size: 12px;
-  box-shadow: var(--float);
-}
-.pwa-update-actions { display: flex; gap: 8px; white-space: nowrap }
-.pwa-update-actions button { border: 0; background: transparent; color: #d4efe0; font: inherit; font-weight: 750 }
-.pwa-update-actions button:last-child { color: #c9ffb0 }
-@media (max-width: 480px) { .pwa-update-prompt { align-items: flex-start; flex-direction: column } }
-
 /* Token design system dipetakan ke Tailwind: bg-brand-700, text-ink-500, ... */
 @theme {
   --color-brand-50: #f0fdf4;
