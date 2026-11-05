@@ -14,7 +14,9 @@ function load(file) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
   }).outputText;
   vm.runInNewContext(output, { exports, Intl, require(name) {
-    return load(path.resolve(path.dirname(absolute), name + '.ts'));
+    const target = path.resolve(path.dirname(absolute), name);
+    // './id' bisa berupa file (id.ts) atau folder (id/index.ts), seperti resolusi bundler.
+    return load(fs.existsSync(target + '.ts') ? target + '.ts' : path.join(target, 'index.ts'));
   } });
   return exports;
 }

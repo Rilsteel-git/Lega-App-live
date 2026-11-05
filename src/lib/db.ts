@@ -10,6 +10,7 @@ import type {
   WalletPayload
 } from '../types';
 import { supabase } from './supabase';
+import { t } from '../i18n';
 
 export interface AppData {
   profile: Profile;
@@ -19,7 +20,7 @@ export interface AppData {
 }
 
 function client() {
-  if (!supabase) throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  if (!supabase) throw new Error(t('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'));
   return supabase;
 }
 

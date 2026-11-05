@@ -15,6 +15,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import { t } from '../i18n';
 import type { Currency, TransactionFilters, TransactionType } from '../types';
 import { formatCurrency } from '../lib/format';
 
@@ -120,8 +121,8 @@ export function UiProvider({ children }: { children: ReactNode }) {
     const variant = options.variant || 'success';
     const id = ++toastId;
     const title = variant === 'error'
-      ? (options.title || '× Error')
-      : (options.title || '✓ Done');
+      ? (options.title || t('× Error'))
+      : (options.title || t('✓ Done'));
     setToasts((list) => list.concat({ id, title, message, variant }));
     const timer = window.setTimeout(() => dismissToast(id), variant === 'error' ? 6000 : 3400);
     toastTimers.current.set(id, timer);
@@ -183,7 +184,7 @@ export function ToastStack() {
           <button
             type="button"
             className="toast-close"
-            aria-label="Dismiss notification"
+            aria-label={t('Dismiss notification')}
             onClick={() => dismissToast(item.id)}
           >
             {'×'}

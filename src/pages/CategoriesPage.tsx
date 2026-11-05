@@ -4,13 +4,14 @@
    ============================================================ */
 
 import { useCallback, useState } from 'react';
+import { t } from '../i18n';
 import type { TransactionType } from '../types';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
 import { categoriesByType, categoryTransactionCount } from '../lib/selectors';
 import { txCount } from '../lib/format';
 import { Icon } from '../components/IconSprite';
-import { EmptyState, Loading, Segmented } from '../components/Ui';
+import { CategoryIcon, EmptyState, Loading, Segmented } from '../components/Ui';
 import { useDeleteCategory } from '../components/Modals';
 import { useReorderableList } from '../hooks/useReorderableList';
 import { useIncrementalList } from '../hooks/useIncrementalList';
@@ -26,8 +27,8 @@ export function CategoriesPage() {
 
   const handleReorder = useCallback((ids: string[]) => {
     void reorderCategories(ids)
-      .then(() => toast('Category order updated'))
-      .catch((reason) => toast(reason instanceof Error ? reason.message : 'Could not reorder categories.', { variant: 'error' }));
+      .then(() => toast(t('Category order updated')))
+      .catch((reason) => toast(reason instanceof Error ? reason.message : t('Could not reorder categories.'), { variant: 'error' }));
   }, [reorderCategories, toast]);
   const activeIds = list.map((category) => category.id);
   const { order, containerRef, draggingId } = useReorderableList(activeIds, handleReorder);
@@ -45,24 +46,24 @@ export function CategoriesPage() {
   async function restore(id: string, name: string) {
     try {
       await restoreCategory(id);
-      toast(name + ' restored');
+      toast(t('{name} restored', { name }));
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not restore category.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not restore category.'), { variant: 'error' });
     }
   }
 
   return (
-    <section className="page active" id="page-categories" aria-label="Categories">
+    <section className="page active" id="page-categories" aria-label={t('Categories')}>
       <article className="card">
         <div className="card-head">
-          <div><h2>Categories</h2><p>Group your income and spending</p></div>
+          <div><h2>{t('Categories')}</h2><p>{t('Group your income and spending')}</p></div>
         </div>
         <Segmented
           id="category-filter"
-          label="Category type"
+          label={t('Category type')}
           value={type}
           onChange={setType}
-          options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]}
+          options={[{ value: 'expense', label: t('Expense') }, { value: 'income', label: t('Income') }]}
         />
         <div style={{ height: 16 }} />
         <div className="category-list" id="categories-list" ref={containerRef}>
@@ -78,11 +79,11 @@ export function CategoriesPage() {
                 aria-label={category.name}
               >
                 <div className="category-info">
-                  <span className="category-icon" aria-hidden="true">{category.icon}</span>
+                  <span className="category-icon" aria-hidden="true"><CategoryIcon icon={category.icon} /></span>
                   <div>
                     <strong>{category.name}</strong>
                     <small>
-                      {category.type === 'income' ? 'Income' : 'Expense'} ·{' '}
+                      {category.type === 'income' ? t('Income') : t('Expense')} ·{' '}
                       {txCount(categoryTransactionCount(transactions, category.id))}
                     </small>
                   </div>
@@ -91,8 +92,8 @@ export function CategoriesPage() {
                   <button
                     className="wallet-menu"
                     type="button"
-                    aria-label={`Edit category ${category.name}`}
-                    title="Edit"
+                    aria-label={t('Edit category {name}', { name: category.name })}
+                    title={t('Edit')}
                     onClick={() => openModal({ kind: 'category', id: category.id })}
                   >
                     <Icon name="edit" />
@@ -100,8 +101,8 @@ export function CategoriesPage() {
                   <button
                     className="wallet-menu"
                     type="button"
-                    aria-label={`Delete category ${category.name}`}
-                    title="Delete"
+                    aria-label={t('Delete category {name}', { name: category.name })}
+                    title={t('Delete')}
                     onClick={() => removeCategory(category.id)}
                   >
                     <Icon name="close" />
@@ -112,24 +113,24 @@ export function CategoriesPage() {
           ) : (
             <EmptyState
               icon="category"
-              title={`No ${type === 'income' ? 'income' : 'expense'} categories yet`}
-              message="Add one so your transactions can be grouped neatly."
+              title={type === 'income' ? t('No income categories yet') : t('No expense categories yet')}
+              message={t('Add one so your transactions can be grouped neatly.')}
             />
           )}
 
           {hasMore && <div className="incremental-list-sentinel" ref={sentinel} aria-hidden="true" />}
-          {loading && <Loading message="Memuat kategori berikutnya" />}
+          {loading && <Loading message={t('Loading more categories')} />}
 
           {archived.length > 0 && (
             <div className="category-archive">
-              <p className="category-archive-head">Archived · {archived.length}</p>
+              <p className="category-archive-head">{t('Archived')} · {archived.length}</p>
               {archived.map((category) => (
                 <div className="category-row archived" key={category.id}>
                   <div className="category-info">
-                    <span className="category-icon" aria-hidden="true">{category.icon}</span>
+                    <span className="category-icon" aria-hidden="true"><CategoryIcon icon={category.icon} /></span>
                     <div>
                       <strong>{category.name}</strong>
-                      <small>Archived · {txCount(categoryTransactionCount(transactions, category.id))}</small>
+                      <small>{t('Archived')} · {txCount(categoryTransactionCount(transactions, category.id))}</small>
                     </div>
                   </div>
                   <button
@@ -137,7 +138,7 @@ export function CategoriesPage() {
                     type="button"
                     onClick={() => void restore(category.id, category.name)}
                   >
-                    Restore
+                    {t('Restore')}
                   </button>
                 </div>
               ))}
@@ -149,7 +150,7 @@ export function CategoriesPage() {
           type="button"
           onClick={() => openModal({ kind: 'category' })}
         >
-          <Icon name="plus" /> New category
+          <Icon name="plus" /> {t('New category')}
         </button>
       </article>
     </section>

@@ -61,7 +61,8 @@ function deferred() {
 function data(name) { return { profile: { name }, wallets: [], categories: [], transactions: [] }; }
 function provider(db) {
   const h = harness('src/context/AppDataContext.tsx', {
-    './AuthContext': { useAuth: () => ({ user: { id: 'test-user' } }) }, '../lib/db': db
+    './AuthContext': { useAuth: () => ({ user: { id: 'test-user' } }) }, '../lib/db': db,
+    '../i18n': { t: (text) => text, tp: (count, one, other) => (count === 1 ? one : other) }
   });
   return { ...h, value: () => h.render('AppDataProvider').props.value };
 }

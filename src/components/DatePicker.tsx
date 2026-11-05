@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { t } from '../i18n';
 import {
   addDays,
   endOfMonth,
@@ -24,7 +25,7 @@ import { Icon } from './IconSprite';
 import { useOutsideClose } from './Ui';
 import { useFloatingPopover } from '../lib/floating';
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAYS = [t('Mon'), t('Tue'), t('Wed'), t('Thu'), t('Fri'), t('Sat'), t('Sun')];
 
 /** 42 sel kalender untuk satu bulan (6 baris penuh). */
 function monthDays(year: number, month: number): string[] {
@@ -66,10 +67,10 @@ function Calendar({
       <div className="calendar-head">
         <strong className="calendar-month">{monthLabel(year, monthIndex)}</strong>
         <div className="calendar-nav">
-          <button type="button" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
+          <button type="button" aria-label={t('Previous month')} onClick={() => shiftMonth(-1)}>
             <Icon name="chevron-left" />
           </button>
-          <button type="button" aria-label="Next month" onClick={() => shiftMonth(1)}>
+          <button type="button" aria-label={t('Next month')} onClick={() => shiftMonth(1)}>
             <Icon name="chevron-right" />
           </button>
         </div>
@@ -169,8 +170,8 @@ export function RangeDatePicker({
   }
 
   function apply() {
-    if (!draftFrom || !draftTo) { onError('Pick a start and end date'); return; }
-    if (draftFrom > draftTo) { onError('The start date must come before the end date'); return; }
+    if (!draftFrom || !draftTo) { onError(t('Pick a start and end date')); return; }
+    if (draftFrom > draftTo) { onError(t('The start date must come before the end date')); return; }
     onApply(draftFrom, draftTo);
     setOpen(false);
   }
@@ -185,7 +186,7 @@ export function RangeDatePicker({
 
   const label = from && to
     ? formatDateShort(from) + ' – ' + formatDateShort(to)
-    : 'Any date';
+    : t('Any date');
 
   return (
     <div className={`date-picker range-date-picker${open ? ' open' : ''}`} id={id} ref={root}>
@@ -200,21 +201,21 @@ export function RangeDatePicker({
         <Icon name="calendar" /><span className="date-label">{label}</span>
       </button>
       {open && createPortal(
-      <div ref={popoverRef} className="date-popover date-popover-portal" role="dialog" aria-label="Filter by date range">
+      <div ref={popoverRef} className="date-popover date-popover-portal" role="dialog" aria-label={t('Filter by date range')}>
         <div className="date-popover-head">
-          <div><strong>Date range</strong><small>Pick the period you want to see</small></div>
-          <button className="date-close" type="button" aria-label="Close date picker" onClick={() => setOpen(false)}>
+          <div><strong>{t('Date range')}</strong><small>{t('Pick the period you want to see')}</small></div>
+          <button className="date-close" type="button" aria-label={t('Close date picker')} onClick={() => setOpen(false)}>
             <Icon name="close" />
           </button>
         </div>
         <div className="date-fields">
           <div className="date-field">
-            <label htmlFor="tx-date-from">From</label>
+            <label htmlFor="tx-date-from">{t('From')}</label>
             <input
               id="tx-date-from"
               className={`range-date-value${active === 'from' ? ' active' : ''}`}
               type="text"
-              placeholder="dd/mm/yyyy"
+              placeholder={t('dd/mm/yyyy')}
               value={draftFrom ? formatDateShort(draftFrom) : ''}
               onFocus={() => setActive('from')}
               onClick={() => setActive('from')}
@@ -222,12 +223,12 @@ export function RangeDatePicker({
             />
           </div>
           <div className="date-field">
-            <label htmlFor="tx-date-to">To</label>
+            <label htmlFor="tx-date-to">{t('To')}</label>
             <input
               id="tx-date-to"
               className={`range-date-value${active === 'to' ? ' active' : ''}`}
               type="text"
-              placeholder="dd/mm/yyyy"
+              placeholder={t('dd/mm/yyyy')}
               value={draftTo ? formatDateShort(draftTo) : ''}
               onFocus={() => setActive('to')}
               onClick={() => setActive('to')}
@@ -244,13 +245,13 @@ export function RangeDatePicker({
           isInRange={(iso) => Boolean(draftFrom && draftTo && iso > draftFrom && iso < draftTo)}
         />
         <div className="date-presets">
-          <button className="date-preset" type="button" onClick={() => preset('week')}>This week</button>
-          <button className="date-preset" type="button" onClick={() => preset('month')}>This month</button>
-          <button className="date-preset" type="button" onClick={() => preset('last-month')}>Last month</button>
+          <button className="date-preset" type="button" onClick={() => preset('week')}>{t('This week')}</button>
+          <button className="date-preset" type="button" onClick={() => preset('month')}>{t('This month')}</button>
+          <button className="date-preset" type="button" onClick={() => preset('last-month')}>{t('Last month')}</button>
         </div>
         <div className="date-popover-foot">
-          <button className="btn ghost" type="button" onClick={clear}>Clear</button>
-          <button className="btn primary" type="button" onClick={apply}>Apply</button>
+          <button className="btn ghost" type="button" onClick={clear}>{t('Clear')}</button>
+          <button className="btn primary" type="button" onClick={apply}>{t('Apply')}</button>
         </div>
       </div>,
       document.body
@@ -295,25 +296,25 @@ export function SingleDatePicker({
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        <span className="single-date-label">{value ? formatDateShort(value) : 'Pick a date'}</span>
+        <span className="single-date-label">{value ? formatDateShort(value) : t('Pick a date')}</span>
         <span className="filter-chevron"><Icon name="chevron-down" /></span>
       </button>
       {open && createPortal(
-      <div ref={popoverRef} className="date-popover single-date-popover date-popover-portal" role="dialog" aria-label="Pick the transaction date">
+      <div ref={popoverRef} className="date-popover single-date-popover date-popover-portal" role="dialog" aria-label={t('Pick the transaction date')}>
         <div className="date-popover-head">
-          <div><strong>Transaction date</strong><small>When did this happen?</small></div>
-          <button className="date-close" type="button" aria-label="Close date picker" onClick={() => setOpen(false)}>
+          <div><strong>{t('Transaction date')}</strong><small>{t('When did this happen?')}</small></div>
+          <button className="date-close" type="button" aria-label={t('Close date picker')} onClick={() => setOpen(false)}>
             <Icon name="close" />
           </button>
         </div>
         <div className="date-fields">
           <div className="date-field">
-            <label htmlFor="transaction-date-value">Date</label>
+            <label htmlFor="transaction-date-value">{t('Date')}</label>
             <input
               id="transaction-date-value"
               className="single-date-value"
               type="text"
-              placeholder="dd/mm/yyyy"
+              placeholder={t('dd/mm/yyyy')}
               value={draft ? formatDateShort(draft) : ''}
               readOnly
             />
@@ -332,12 +333,12 @@ export function SingleDatePicker({
             type="button"
             onClick={() => { const iso = today(); setDraft(iso); setCursor(iso.slice(0, 7)); }}
           >
-            Today
+            {t('Today')}
           </button>
         </div>
         <div className="date-popover-foot">
-          <button className="btn ghost" type="button" onClick={() => { setDraft(''); onChange(''); setOpen(false); }}>Clear</button>
-          <button className="btn primary" type="button" onClick={() => { onChange(draft); setOpen(false); }}>Apply</button>
+          <button className="btn ghost" type="button" onClick={() => { setDraft(''); onChange(''); setOpen(false); }}>{t('Clear')}</button>
+          <button className="btn primary" type="button" onClick={() => { onChange(draft); setOpen(false); }}>{t('Apply')}</button>
         </div>
       </div>,
       document.body

@@ -3,6 +3,7 @@
    personal-wallet/index.html, diisi dengan logika render.dashboard().
    ============================================================ */
 
+import { t, tp } from '../i18n';
 import { useReport } from '../hooks/useReport';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
@@ -36,24 +37,24 @@ export function DashboardPage() {
   const peers = transferPeers(nativeTransactions);
 
   const badge = !monthTotals.income && !monthTotals.expense
-    ? { className: 'badge gray', label: 'No data yet' }
+    ? { className: 'badge gray', label: t('No data yet') }
     : monthTotals.net >= 0
-      ? { className: 'badge green', label: 'On track' }
-      : { className: 'badge red', label: 'Overspending' };
+      ? { className: 'badge green', label: t('On track') }
+      : { className: 'badge red', label: t('Overspending') };
 
   return (
-    <section className="page active" id="page-dashboard" aria-label="Dashboard">
+    <section className="page active" id="page-dashboard" aria-label={t('Dashboard')}>
       <div className="hero-grid">
         <article className="hero">
           <div className="hero-top">
-            <span className="hero-label">Total balance ({currency})
+            <span className="hero-label">{t('Total balance ({currency})', { currency })}
               <button
                 className="hero-eye"
                 type="button"
                 id="hero-balance-toggle"
                 aria-pressed={balanceHidden}
-                aria-label={balanceHidden ? 'Show balance' : 'Hide balance'}
-                title={balanceHidden ? 'Show balance' : 'Hide balance'}
+                aria-label={balanceHidden ? t('Show balance') : t('Hide balance')}
+                title={balanceHidden ? t('Show balance') : t('Hide balance')}
                 onClick={toggleBalance}
               >
                 <Icon name={balanceHidden ? 'eye-off' : 'eye'} />
@@ -62,21 +63,21 @@ export function DashboardPage() {
             <span
               className="change"
               id="hero-change"
-              title={hasSpendingHistory ? `Change in spending compared with ${compare.previous.label}` : undefined}
+              title={hasSpendingHistory ? t('Change in spending compared with {period}', { period: compare.previous.label }) : undefined}
             >
               {hasSpendingHistory ? (
                 <>
                   <Icon name={delta >= 0 ? 'arrow-out' : 'arrow-in'} />
-                  <span>{formatPercent(Math.abs(delta))} spending</span>
+                  <span>{t('{percent} spending', { percent: formatPercent(Math.abs(delta)) })}</span>
                 </>
-              ) : 'This month'}
+              ) : t('This month')}
             </span>
           </div>
           <div className="hero-amount num" id="hero-balance">{formatBalance(total)}</div>
           <div className="hero-meta" id="hero-meta">
             {walletCards.length
-              ? `${walletCards.length} wallet${walletCards.length > 1 ? 's' : ''} · estimated using manual wallet rates`
-              : 'No wallets yet — add your first one to get started'}
+              ? `${tp(walletCards.length, '{count} wallet', '{count} wallets')} · ${t('estimated using manual wallet rates')}`
+              : t('No wallets yet — add your first one to get started')}
           </div>
           <div className="quick-actions">
             <button
@@ -84,40 +85,40 @@ export function DashboardPage() {
               type="button"
               onClick={() => openModal({ kind: 'transaction', type: 'income' })}
             >
-              <b><Icon name="plus" /></b>Income
+              <b><Icon name="plus" /></b>{t('Income')}
             </button>
             <button
               className="quick"
               type="button"
               onClick={() => openModal({ kind: 'transaction', type: 'expense' })}
             >
-              <b><Icon name="minus" /></b>Expense
+              <b><Icon name="minus" /></b>{t('Expense')}
             </button>
             <button className="quick" type="button" onClick={() => openModal({ kind: 'wallet' })}>
-              <b><Icon name="wallet-plus" /></b>New wallet
+              <b><Icon name="wallet-plus" /></b>{t('New wallet')}
             </button>
           </div>
         </article>
 
         <article className="card monthly">
           <div className="card-head">
-            <div><h2>This month</h2><p id="month-summary-label">{month.label}</p></div>
+            <div><h2>{t('This month')}</h2><p id="month-summary-label">{month.label}</p></div>
             <span className={badge.className} id="month-summary-badge">{badge.label}</span>
           </div>
           <div className="mini-grid">
             <div className="mini">
-              <small>Income</small>
+              <small>{t('Income')}</small>
               <strong className="income num" id="month-income">{formatCurrency(monthTotals.income)}</strong>
             </div>
             <div className="mini">
-              <small>Expenses</small>
+              <small>{t('Expenses')}</small>
               <strong className="expense num" id="month-expense">{formatCurrency(monthTotals.expense)}</strong>
             </div>
           </div>
           <div>
             <div className="divider" />
             <p className="muted" style={{ fontSize: 12, margin: '12px 0 0' }}>
-              Net cash flow{' '}
+              {t('Net cash flow')}{' '}
               <strong className={`num ${monthTotals.net < 0 ? 'expense' : 'income'}`} id="month-net">
                 {formatCurrency(monthTotals.net)}
               </strong>
@@ -129,8 +130,8 @@ export function DashboardPage() {
       <div className="dashboard-grid">
         <article className="card">
           <div className="card-head">
-            <div><h2>Your wallets</h2><p>Every money source in one place</p></div>
-            <a className="btn ghost" href="#/wallets">Manage <Icon name="chevron-right" /></a>
+            <div><h2>{t('Your wallets')}</h2><p>{t('Every money source in one place')}</p></div>
+            <a className="btn ghost" href="#/wallets">{t('Manage')} <Icon name="chevron-right" /></a>
           </div>
           <div className="wallet-grid" id="dashboard-wallets">
             {walletCards.length ? (
@@ -148,9 +149,9 @@ export function DashboardPage() {
             ) : (
               <EmptyState
                 icon="wallet"
-                title="No wallets yet"
-                message="Add your first wallet so transactions have somewhere to live."
-                actionLabel="Add wallet"
+                title={t('No wallets yet')}
+                message={t('Add your first wallet so transactions have somewhere to live.')}
+                actionLabel={t('Add wallet')}
                 onAction={() => openModal({ kind: 'wallet' })}
               />
             )}
@@ -159,8 +160,8 @@ export function DashboardPage() {
 
         <article className="card">
           <div className="card-head">
-            <div><h2>Recent activity</h2><p>Your last 5 transactions</p></div>
-            <a className="btn ghost" href="#/transactions">See all <Icon name="chevron-right" /></a>
+            <div><h2>{t('Recent activity')}</h2><p>{t('Your last 5 transactions')}</p></div>
+            <a className="btn ghost" href="#/transactions">{t('See all')} <Icon name="chevron-right" /></a>
           </div>
           <div className="transactions" id="dashboard-transactions">
             {recent.length ? (
@@ -180,9 +181,9 @@ export function DashboardPage() {
             ) : (
               <EmptyState
                 icon="receipt"
-                title="No transactions yet"
-                message="Record your first one to start seeing the pattern."
-                actionLabel="Add transaction"
+                title={t('No transactions yet')}
+                message={t('Record your first one to start seeing the pattern.')}
+                actionLabel={t('Add transaction')}
                 onAction={() => openModal({ kind: 'transaction' })}
               />
             )}

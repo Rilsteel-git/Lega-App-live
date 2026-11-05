@@ -4,6 +4,7 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '../i18n';
 import type { Currency, Transaction, TransactionType } from '../types';
 import { useAppData } from '../context/AppDataContext';
 import { EMPTY_FILTERS, useUi } from '../context/UiContext';
@@ -74,21 +75,22 @@ export function TransactionsPage() {
     return Array.from(index, ([date, items]) => ({ date, items }));
   }, [visibleItems]);
 
-  const walletOptions = [{ value: '', label: 'All Wallets' }].concat(
+  const walletOptions = [{ value: '', label: t('All Wallets') }].concat(
     wallets.map((wallet) => ({ value: wallet.id, label: wallet.name }))
   );
 
-  const categoryOptions = [{ value: '', label: 'All Categories' }].concat(
+  const categoryOptions = [{ value: '', label: t('All Categories') }].concat(
     categories.map((category) => ({
       value: category.id,
-      label: category.icon + ' ' + category.name + (category.archived ? ' (archived)' : '')
+      label: category.name + (category.archived ? ' ' + t('(archived)') : ''),
+      icon: category.icon
     }))
   );
 
   const typeOptions = [
-    { value: '', label: 'All Types' },
-    { value: 'income', label: 'Income' },
-    { value: 'expense', label: 'Expense' }
+    { value: '', label: t('All Types') },
+    { value: 'income', label: t('Income') },
+    { value: 'expense', label: t('Expense') }
   ];
 
   function update(patch: Partial<typeof filters>) {
@@ -96,15 +98,15 @@ export function TransactionsPage() {
   }
 
   return (
-    <section className="page active" id="page-transactions" aria-label="Transactions">
+    <section className="page active" id="page-transactions" aria-label={t('Transactions')}>
       <article className="card">
         <div className="card-head">
           <div>
-            <h2>All transactions</h2>
+            <h2>{t('All transactions')}</h2>
             <p id="tx-result-label">
               {filtered.length
-                ? `${txCount(filtered.length)} · in ${formatCompact(sums.income)} · out ${formatCompact(sums.expense)}`
-                : 'No transactions match your filters'}
+                ? `${txCount(filtered.length)} · ${t('in {amount}', { amount: formatCompact(sums.income) })} · ${t('out {amount}', { amount: formatCompact(sums.expense) })}`
+                : t('No transactions match your filters')}
             </p>
           </div>
         </div>
@@ -114,8 +116,8 @@ export function TransactionsPage() {
             <input
               type="search"
               id="tx-search"
-              placeholder="Search transactions"
-              aria-label="Search transactions"
+              placeholder={t('Search transactions')}
+              aria-label={t('Search transactions')}
               value={filters.search}
               onChange={(event) => update({ search: event.target.value })}
             />
@@ -124,27 +126,27 @@ export function TransactionsPage() {
               type="button"
               onClick={() => setFilters(EMPTY_FILTERS)}
             >
-              Clear filters
+              {t('Clear filters')}
             </button>
           </div>
 
-          <div className="filter-chips" role="group" aria-label="Transaction filters">
-            <Dropdown label="Filter currency" value={filters.currency} options={[{ value: '', label: 'All Currencies' }, ...currencyOptions]} onChange={(value) => update({ currency: value as '' | Currency })} />
-            <Dropdown label="Display amounts" value={display} options={[{ value: 'original', label: 'Original Amounts' }, { value: 'report', label: 'Show in ' + currency }, ...(currency !== 'IDR' ? [{ value: 'idr', label: 'Show in IDR' }] : [])]} onChange={setDisplay} />
+          <div className="filter-chips" role="group" aria-label={t('Transaction filters')}>
+            <Dropdown label={t('Filter currency')} value={filters.currency} options={[{ value: '', label: t('All Currencies') }, ...currencyOptions]} onChange={(value) => update({ currency: value as '' | Currency })} />
+            <Dropdown label={t('Display amounts')} value={display} options={[{ value: 'original', label: t('Original Amounts') }, { value: 'report', label: t('Show in {currency}', { currency }) }, ...(currency !== 'IDR' ? [{ value: 'idr', label: t('Show in IDR') }] : [])]} onChange={setDisplay} />
             <Dropdown
-              label="Filter by wallet"
+              label={t('Filter by wallet')}
               options={walletOptions}
               value={filters.walletId}
               onChange={(value) => update({ walletId: value })}
             />
             <Dropdown
-              label="Filter by category"
+              label={t('Filter by category')}
               options={categoryOptions}
               value={filters.categoryId}
               onChange={(value) => update({ categoryId: value })}
             />
             <Dropdown
-              label="Filter by type"
+              label={t('Filter by type')}
               options={typeOptions}
               value={filters.type}
               onChange={(value) => update({ type: value as '' | TransactionType })}
@@ -161,14 +163,14 @@ export function TransactionsPage() {
 
         <div className="divider" />
         {groups.length > 0 && (
-          <div className="tx-group-controls" role="group" aria-label="Transaction date groups">
+          <div className="tx-group-controls" role="group" aria-label={t('Transaction date groups')}>
             <button
               className="btn ghost"
               type="button"
               aria-controls="tx-list"
               onClick={() => { setAllCollapsed(false); setCollapsed({}); }}
             >
-              Expand all
+              {t('Expand all')}
             </button>
             <button
               className="btn ghost"
@@ -176,7 +178,7 @@ export function TransactionsPage() {
               aria-controls="tx-list"
               onClick={() => { setAllCollapsed(true); setCollapsed({}); }}
             >
-              Collapse all
+              {t('Collapse all')}
             </button>
           </div>
         )}
@@ -224,21 +226,21 @@ export function TransactionsPage() {
           ) : transactions.length ? (
             <EmptyState
               icon="search"
-              title="Tidak ada hasil"
-              message="Try a different search, or clear the filters."
+              title={t('No results found')}
+              message={t('Try a different search, or clear the filters.')}
             />
           ) : (
             <EmptyState
               icon="receipt"
-              title="No transactions yet"
-              message="Record your first one to start seeing the pattern."
-              actionLabel="Add transaction"
+              title={t('No transactions yet')}
+              message={t('Record your first one to start seeing the pattern.')}
+              actionLabel={t('Add transaction')}
               onAction={() => openModal({ kind: 'transaction' })}
             />
           )}
         </div>
         {hasMore && <div className="incremental-list-sentinel" ref={sentinel} aria-hidden="true" />}
-        {loading && <Loading message="Memuat transaksi berikutnya" />}
+        {loading && <Loading message={t('Loading more transactions')} />}
       </article>
     </section>
   );

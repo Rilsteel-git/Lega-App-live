@@ -15,51 +15,52 @@ import type {
   WalletType,
   WalletWithBalance
 } from '../types';
+import { t } from '../i18n';
 
 export const WALLET_TYPES: { value: WalletType; label: string; icon: string }[] = [
-  { value: 'bank', label: 'Bank', icon: 'bank' },
-  { value: 'e-wallet', label: 'E-wallet', icon: 'ewallet' },
-  { value: 'cash', label: 'Cash', icon: 'cash' }
+  { value: 'bank', label: t('Bank'), icon: 'bank' },
+  { value: 'e-wallet', label: t('E-wallet'), icon: 'ewallet' },
+  { value: 'cash', label: t('Cash'), icon: 'cash' }
 ];
 
 export const CATEGORY_ICONS = [
-  { icon: '🍜', label: 'Makanan' }, { icon: '🛵', label: 'Transportasi' },
-  { icon: '🛒', label: 'Belanja' }, { icon: '🎁', label: 'Bonus' },
-  { icon: '💼', label: 'Gaji' }, { icon: '🏠', label: 'Rumah' },
-  { icon: '💊', label: 'Kesehatan' }, { icon: '📚', label: 'Pendidikan' },
-  { icon: '🎬', label: 'Hiburan' }, { icon: '🧾', label: 'Tagihan' },
-  { icon: '📱', label: 'Pulsa' }, { icon: '✈️', label: 'Travel' },
-  { icon: '🐾', label: 'Hewan' }, { icon: '📈', label: 'Investasi' },
-  { icon: '🤝', label: 'Donasi' }, { icon: '⚽', label: 'Olahraga' },
-  { icon: '✨', label: 'Lainnya' },
-  { icon: '🥬', label: 'Sayur & buah' }, { icon: '🥩', label: 'Daging & ikan' },
-  { icon: '☕', label: 'Kopi & jajan' }, { icon: '🍽️', label: 'Restoran' },
-  { icon: '🥡', label: 'Pesan antar' }, { icon: '🚗', label: 'Kendaraan' },
-  { icon: '⛽', label: 'Bensin' }, { icon: '🅿️', label: 'Parkir' },
-  { icon: '🚆', label: 'Transportasi umum' }, { icon: '🏥', label: 'Biaya medis' },
-  { icon: '🧴', label: 'Perawatan diri' }, { icon: '👕', label: 'Pakaian' },
-  { icon: '🧹', label: 'Kebersihan' }, { icon: '🛋️', label: 'Perabot rumah' },
-  { icon: '🔧', label: 'Perbaikan' }, { icon: '🏘️', label: 'Sewa tempat' },
-  { icon: '💡', label: 'Listrik' }, { icon: '🚰', label: 'Air' },
-  { icon: '🌐', label: 'Internet' }, { icon: '🛡️', label: 'Asuransi' },
-  { icon: '💳', label: 'Cicilan' }, { icon: '👶', label: 'Anak' },
-  { icon: '👪', label: 'Keluarga' }, { icon: '📦', label: 'Langganan' },
-  { icon: '🎮', label: 'Game' }, { icon: '🎵', label: 'Musik' },
-  { icon: '📖', label: 'Buku' }, { icon: '🎓', label: 'Kursus' },
-  { icon: '💝', label: 'Hadiah' }, { icon: '🏖️', label: 'Liburan' },
-  { icon: '🧑‍💻', label: 'Freelance' }, { icon: '🏪', label: 'Usaha' },
-  { icon: '🪙', label: 'Bunga' }, { icon: '💹', label: 'Dividen' },
-  { icon: '💸', label: 'Cashback' }, { icon: '♻️', label: 'Pengembalian dana' },
-  { icon: '🧧', label: 'THR' }, { icon: '🎨', label: 'Komisi' },
-  { icon: '🛍️', label: 'Penjualan' }, { icon: '🎟️', label: 'Acara' },
-  { icon: '🧘', label: 'Kebugaran' }, { icon: '🧺', label: 'Laundry' },
-  { icon: '🏦', label: 'Biaya bank' }, { icon: '🧮', label: 'Pajak' }
+  { icon: '🍜', label: t('Food') }, { icon: '🛵', label: t('Transport') },
+  { icon: '🛒', label: t('Shopping') }, { icon: '🎁', label: t('Bonus') },
+  { icon: '💼', label: t('Salary') }, { icon: '🏠', label: t('House') },
+  { icon: '💊', label: t('Health') }, { icon: '📚', label: t('Education') },
+  { icon: '🎬', label: t('Entertainment') }, { icon: '🧾', label: t('Bills') },
+  { icon: '📱', label: t('Phone credit') }, { icon: '✈️', label: t('Travel') },
+  { icon: '🐾', label: t('Pets') }, { icon: '📈', label: t('Investment') },
+  { icon: '🤝', label: t('Donation') }, { icon: '⚽', label: t('Sports') },
+  { icon: '✨', label: t('Other') },
+  { icon: '🥬', label: t('Fruits & vegetables') }, { icon: '🥩', label: t('Meat & fish') },
+  { icon: '☕', label: t('Coffee & snacks') }, { icon: '🍽️', label: t('Restaurant') },
+  { icon: '🥡', label: t('Food delivery') }, { icon: '🚗', label: t('Vehicle') },
+  { icon: '⛽', label: t('Fuel') }, { icon: '🅿️', label: t('Parking') },
+  { icon: '🚆', label: t('Public transport') }, { icon: '🏥', label: t('Medical expenses') },
+  { icon: '🧴', label: t('Personal care') }, { icon: '👕', label: t('Clothing') },
+  { icon: '🧹', label: t('Cleaning') }, { icon: '🛋️', label: t('Furniture') },
+  { icon: '🔧', label: t('Repairs') }, { icon: '🏘️', label: t('Rent') },
+  { icon: '💡', label: t('Electricity') }, { icon: '🚰', label: t('Water') },
+  { icon: '🌐', label: t('Internet') }, { icon: '🛡️', label: t('Insurance') },
+  { icon: '💳', label: t('Installments') }, { icon: '👶', label: t('Kids') },
+  { icon: '👪', label: t('Family') }, { icon: '📦', label: t('Subscriptions') },
+  { icon: '🎮', label: t('Games') }, { icon: '🎵', label: t('Music') },
+  { icon: '📖', label: t('Books') }, { icon: '🎓', label: t('Courses') },
+  { icon: '💝', label: t('Gifts') }, { icon: '🏖️', label: t('Vacation') },
+  { icon: '🧑‍💻', label: t('Freelance') }, { icon: '🏪', label: t('Business') },
+  { icon: '🪙', label: t('Interest') }, { icon: '💹', label: t('Dividends') },
+  { icon: '💸', label: t('Cashback') }, { icon: '♻️', label: t('Refunds') },
+  { icon: '🧧', label: t('Holiday bonus') }, { icon: '🎨', label: t('Commission') },
+  { icon: '🛍️', label: t('Sales') }, { icon: '🎟️', label: t('Events') },
+  { icon: '🧘', label: t('Fitness') }, { icon: '🧺', label: t('Laundry') },
+  { icon: '🏦', label: t('Bank fees') }, { icon: '🧮', label: t('Taxes') }
 ];
 
 /** Dipakai saat kategori sebuah transaksi sudah dihapus permanen. */
 export const DELETED_CATEGORY = {
   id: null,
-  name: 'Deleted category',
+  name: t('Deleted category'),
   icon: '✳',
   type: 'expense' as const,
   deleted: true
@@ -67,7 +68,7 @@ export const DELETED_CATEGORY = {
 
 export function walletTypeMeta(value: string) {
   return (
-    WALLET_TYPES.find((t) => t.value === value) || { value, label: 'Lainnya', icon: 'cash' }
+    WALLET_TYPES.find((t) => t.value === value) || { value, label: t('Other'), icon: 'cash' }
   );
 }
 

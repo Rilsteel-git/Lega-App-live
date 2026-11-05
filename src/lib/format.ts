@@ -5,16 +5,17 @@
 
 import type { Currency, TransactionType } from '../types';
 import { fractionDigits } from './currency';
+import { t, tp } from '../i18n';
 
 
 export const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  t('January'), t('February'), t('March'), t('April'), t('May'), t('June'),
+  t('July'), t('August'), t('September'), t('October'), t('November'), t('December')
 ];
 
 export const MONTHS_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), t('Jun'),
+  t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec')
 ];
 
 /* ---------- Uang ---------- */
@@ -101,10 +102,10 @@ export function formatDateID(iso: string): string {
 /** Today / Yesterday / 27 Aug 2026 */
 export function formatDateRelative(iso: string): string {
   const now = new Date();
-  const t = toIso(now);
+  const todayIso = toIso(now);
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  if (iso === t) return 'Today';
-  if (iso === toIso(yesterday)) return 'Yesterday';
+  if (iso === todayIso) return t('Today');
+  if (iso === toIso(yesterday)) return t('Yesterday');
   return formatDateID(iso);
 }
 
@@ -154,5 +155,5 @@ export function formatPercent(value: number): string {
 
 /** "1 transaction" / "4 transactions" */
 export function txCount(count: number): string {
-  return count + ' transaction' + (count === 1 ? '' : 's');
+  return tp(count, '{count} transaction', '{count} transactions');
 }

@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/IconSprite';
 import { useFormErrors } from '../hooks/useFormErrors';
+import { t } from '../i18n';
 
 type AuthRoute = 'login' | 'register' | 'forgot-password' | 'reset-password';
 
@@ -62,7 +63,7 @@ function PasswordField({
         />
         <button
           type="button"
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visible ? t('Hide password') : t('Show password')}
           aria-pressed={visible}
           onClick={() => setVisible(!visible)}
         >
@@ -79,20 +80,20 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateEmail(value: string): string | null {
   const trimmed = value.trim();
-  if (!trimmed) return 'Enter your email address.';
-  if (!EMAIL_PATTERN.test(trimmed)) return 'Enter a valid email address (e.g. name@example.com).';
+  if (!trimmed) return t('Enter your email address.');
+  if (!EMAIL_PATTERN.test(trimmed)) return t('Enter a valid email address (e.g. name@example.com).');
   return null;
 }
 
 /** 8+ karakter, campuran huruf besar/kecil, angka, dan simbol. */
-const PASSWORD_HINT = 'At least 8 characters, with uppercase, lowercase, a number, and a special character.';
+const PASSWORD_HINT = t('At least 8 characters, with uppercase, lowercase, a number, and a special character.');
 
 function validatePassword(value: string): string | null {
-  if (value.length < 8) return 'Use at least 8 characters.';
-  if (!/[a-z]/.test(value)) return 'Add at least one lowercase letter.';
-  if (!/[A-Z]/.test(value)) return 'Add at least one uppercase letter.';
-  if (!/[0-9]/.test(value)) return 'Add at least one number.';
-  if (!/[^A-Za-z0-9]/.test(value)) return 'Add at least one special character (e.g. ! @ # $ %).';
+  if (value.length < 8) return t('Use at least 8 characters.');
+  if (!/[a-z]/.test(value)) return t('Add at least one lowercase letter.');
+  if (!/[A-Z]/.test(value)) return t('Add at least one uppercase letter.');
+  if (!/[0-9]/.test(value)) return t('Add at least one number.');
+  if (!/[^A-Za-z0-9]/.test(value)) return t('Add at least one special character (e.g. ! @ # $ %).');
   return null;
 }
 
@@ -142,10 +143,10 @@ export function AuthPage() {
 
   useEffect(() => {
     const titles: Record<AuthRoute, string> = {
-      login: 'Log in',
-      register: 'Register',
-      'forgot-password': 'Forgot password',
-      'reset-password': 'Create new password'
+      login: t('Log in'),
+      register: t('Register'),
+      'forgot-password': t('Forgot password'),
+      'reset-password': t('Create new password')
     };
     document.title = `${titles[route]} · Lega`;
   }, [route]);
@@ -164,7 +165,7 @@ export function AuthPage() {
     const next: Record<string, string> = {};
     const emailError = validateEmail(email);
     if (emailError) next.email = emailError;
-    if (!password) next.password = 'Enter your password.';
+    if (!password) next.password = t('Enter your password.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -173,7 +174,7 @@ export function AuthPage() {
     try {
       await signIn(email.trim(), password);
     } catch (reason) {
-      setStatus(reason instanceof Error ? reason.message : 'Could not log you in.');
+      setStatus(reason instanceof Error ? reason.message : t('Could not log you in.'));
     } finally {
       setBusy(false);
     }
@@ -182,12 +183,12 @@ export function AuthPage() {
   async function submitRegister(event: React.FormEvent) {
     event.preventDefault();
     const next: Record<string, string> = {};
-    if (!name.trim()) next.name = 'Tell us what to call you.';
+    if (!name.trim()) next.name = t('Tell us what to call you.');
     const emailError = validateEmail(email);
     if (emailError) next.email = emailError;
     const passwordError = validatePassword(password);
     if (passwordError) next.password = passwordError;
-    if (confirm !== password) next.confirm = 'Both passwords must match.';
+    if (confirm !== password) next.confirm = t('Both passwords must match.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -196,16 +197,16 @@ export function AuthPage() {
     try {
       const result = await signUp(name.trim(), email.trim(), password);
       if (result === 'confirmation-required') {
-        showLoginAfterRegister(`We sent a confirmation link to ${email.trim()}. Confirm it, then log in below.`);
+        showLoginAfterRegister(t('We sent a confirmation link to {email}. Confirm it, then log in below.', { email: email.trim() }));
       } else if (result === 'already-pending') {
-        showLoginAfterRegister(`This email is already registered but not confirmed. Check ${email.trim()} for the confirmation link. Login is unavailable until you confirm it.`);
+        showLoginAfterRegister(t('This email is already registered but not confirmed. Check {email} for the confirmation link. Login is unavailable until you confirm it.', { email: email.trim() }));
       } else if (result === 'already-confirmed' || result === 'already-exists') {
-        showLoginAfterRegister('This email is already registered. Please log in instead of creating another account.');
+        showLoginAfterRegister(t('This email is already registered. Please log in instead of creating another account.'));
       } else {
         setStatus('');
       }
     } catch (reason) {
-      setStatus(reason instanceof Error ? reason.message : 'Could not create your account.');
+      setStatus(reason instanceof Error ? reason.message : t('Could not create your account.'));
     } finally {
       setBusy(false);
     }
@@ -223,7 +224,7 @@ export function AuthPage() {
       await requestPasswordReset(email.trim());
       setResetEmailSent(true);
     } catch (reason) {
-      setStatus(reason instanceof Error ? reason.message : 'Could not send the reset link.');
+      setStatus(reason instanceof Error ? reason.message : t('Could not send the reset link.'));
     } finally {
       setBusy(false);
     }
@@ -234,7 +235,7 @@ export function AuthPage() {
     const next: Record<string, string> = {};
     const passwordError = validatePassword(password);
     if (passwordError) next.password = passwordError;
-    if (confirm !== password) next.confirm = 'Both passwords must match.';
+    if (confirm !== password) next.confirm = t('Both passwords must match.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -246,7 +247,7 @@ export function AuthPage() {
       setPassword('');
       setConfirm('');
     } catch (reason) {
-      setStatus(reason instanceof Error ? reason.message : 'Could not update your password.');
+      setStatus(reason instanceof Error ? reason.message : t('Could not update your password.'));
     } finally {
       setBusy(false);
     }
@@ -263,19 +264,19 @@ export function AuthPage() {
 
           <section className={`auth-panel${route === 'login' ? ' active' : ''}`} id="page-login" aria-labelledby="login-title">
             <div className="auth-heading">
-              <span className="auth-overline">WELCOME BACK</span>
-              <h1 id="login-title">Log in to Lega</h1>
-              <p>Pick up where you left off with your money.</p>
+              <span className="auth-overline">{t('WELCOME BACK')}</span>
+              <h1 id="login-title">{t('Log in to Lega')}</h1>
+              <p>{t('Pick up where you left off with your money.')}</p>
             </div>
             <form className="auth-form" onSubmit={submitLogin} noValidate>
               <div className={`input${errors.email ? ' error' : ''}`} data-field="email">
-                <label htmlFor="login-email">Email address</label>
+                <label htmlFor="login-email">{t('Email address')}</label>
                 <input
                   id="login-email"
                   type="email"
                   autoComplete="email"
                   inputMode="email"
-                  placeholder="you@example.com"
+                  placeholder={t('you@example.com')}
                   value={email}
                   onChange={(event) => { setEmail(event.target.value); clearError('email'); setStatus(''); }}
                   required
@@ -284,24 +285,24 @@ export function AuthPage() {
               </div>
               <PasswordField
                 id="login-password"
-                label="Password"
+                label={t('Password')}
                 value={password}
                 onChange={(value) => { setPassword(value); clearError('password', 'confirm'); setStatus(''); }}
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder={t('Enter your password')}
                 error={errors.password}
-                action={<a className="auth-forgot-link" href="#/forgot-password">Forgot password?</a>}
+                action={<a className="auth-forgot-link" href="#/forgot-password">{t('Forgot password?')}</a>}
               />
               <p className="auth-status" id="login-status" role="status" aria-live="polite">
                 {configError || status}
               </p>
               <button className="btn primary auth-submit" type="submit" disabled={busy}>
-                {busy ? 'Please wait…' : <>Log in <Icon name="arrow-right" /></>}
+                {busy ? t('Please wait…') : <>{t('Log in')} <Icon name="arrow-right" /></>}
               </button>
             </form>
-            <p className="auth-switch">New to Lega? <a href="#/register">Create an account</a></p>
+            <p className="auth-switch">{t('New to Lega?')} <a href="#/register">{t('Create an account')}</a></p>
             <p className="auth-local-note">
-              Your account is stored on the server, so the same email and password work on any device.
+              {t('Your account is stored on the server, so the same email and password work on any device.')}
             </p>
           </section>
 
@@ -309,29 +310,29 @@ export function AuthPage() {
             {resetEmailSent ? (
               <div className="auth-result" role="status" aria-live="polite">
                 <div className="auth-result-icon"><Icon name="mail" /></div>
-                <span className="auth-overline">CHECK YOUR INBOX</span>
-                <h1>Reset link sent</h1>
-                <p>If an account exists for <strong>{email.trim()}</strong>, you will receive a password reset link shortly.</p>
-                <a className="btn primary auth-submit" href="#/login">Back to log in <Icon name="arrow-right" /></a>
-                <button className="auth-text-button" type="button" disabled={busy} onClick={() => setResetEmailSent(false)}>Use another email</button>
+                <span className="auth-overline">{t('CHECK YOUR INBOX')}</span>
+                <h1>{t('Reset link sent')}</h1>
+                <p>{t('If an account exists for {email}, you will receive a password reset link shortly.', { email: '@@EMAIL@@' }).split('@@EMAIL@@').flatMap((part, index) => index === 0 ? [part] : [<strong key="email">{email.trim()}</strong>, part])}</p>
+                <a className="btn primary auth-submit" href="#/login">{t('Back to log in')} <Icon name="arrow-right" /></a>
+                <button className="auth-text-button" type="button" disabled={busy} onClick={() => setResetEmailSent(false)}>{t('Use another email')}</button>
               </div>
             ) : (
               <>
-                <a className="auth-back" href="#/login"><Icon name="chevron-left" /> Back to log in</a>
+                <a className="auth-back" href="#/login"><Icon name="chevron-left" /> {t('Back to log in')}</a>
                 <div className="auth-heading auth-heading-spaced">
-                  <span className="auth-overline">ACCOUNT RECOVERY</span>
-                  <h1 id="forgot-password-title">Forgot your password?</h1>
-                  <p>Enter the email linked to your Lega account. We will send you a secure reset link.</p>
+                  <span className="auth-overline">{t('ACCOUNT RECOVERY')}</span>
+                  <h1 id="forgot-password-title">{t('Forgot your password?')}</h1>
+                  <p>{t('Enter the email linked to your Lega account. We will send you a secure reset link.')}</p>
                 </div>
                 <form className="auth-form" onSubmit={submitForgotPassword} noValidate>
                   <div className={`input${errors.email ? ' error' : ''}`} data-field="email">
-                    <label htmlFor="forgot-email">Email address</label>
+                    <label htmlFor="forgot-email">{t('Email address')}</label>
                     <input
                       id="forgot-email"
                       type="email"
                       autoComplete="email"
                       inputMode="email"
-                      placeholder="you@example.com"
+                      placeholder={t('you@example.com')}
                       value={email}
                       onChange={(event) => { setEmail(event.target.value); clearError('email'); setStatus(''); }}
                       required
@@ -341,10 +342,10 @@ export function AuthPage() {
                   </div>
                   <p className="auth-status" role="status" aria-live="polite">{configError || status}</p>
                   <button className="btn primary auth-submit" type="submit" disabled={busy}>
-                    {busy ? 'Sending…' : <>Send reset link <Icon name="arrow-right" /></>}
+                    {busy ? t('Sending…') : <>{t('Send reset link')} <Icon name="arrow-right" /></>}
                   </button>
                 </form>
-                <p className="auth-security-note"><Icon name="lock" /> The link is private and expires automatically.</p>
+                <p className="auth-security-note"><Icon name="lock" /> {t('The link is private and expires automatically.')}</p>
               </>
             )}
           </section>
@@ -353,75 +354,75 @@ export function AuthPage() {
             {passwordUpdated ? (
               <div className="auth-result" role="status" aria-live="polite">
                 <div className="auth-result-icon success"><Icon name="check" /></div>
-                <span className="auth-overline">ALL SET</span>
-                <h1>Password updated</h1>
-                <p>Your password has been changed. Log in with the new password to continue.</p>
-                <a className="btn primary auth-submit" href="#/login">Log in to Lega <Icon name="arrow-right" /></a>
+                <span className="auth-overline">{t('ALL SET')}</span>
+                <h1>{t('Password updated')}</h1>
+                <p>{t('Your password has been changed. Log in with the new password to continue.')}</p>
+                <a className="btn primary auth-submit" href="#/login">{t('Log in to Lega')} <Icon name="arrow-right" /></a>
               </div>
             ) : passwordRecovery ? (
               <>
                 <button className="auth-back auth-back-button" type="button" onClick={() => void cancelPasswordRecovery()}>
-                  <Icon name="chevron-left" /> Cancel
+                  <Icon name="chevron-left" /> {t('Cancel')}
                 </button>
                 <div className="auth-heading auth-heading-spaced">
-                  <span className="auth-overline">SECURE YOUR ACCOUNT</span>
-                  <h1 id="reset-password-title">Create a new password</h1>
-                  <p>Choose a strong password you have not used for this account before.</p>
+                  <span className="auth-overline">{t('SECURE YOUR ACCOUNT')}</span>
+                  <h1 id="reset-password-title">{t('Create a new password')}</h1>
+                  <p>{t('Choose a strong password you have not used for this account before.')}</p>
                 </div>
                 <form className="auth-form" onSubmit={submitNewPassword} noValidate>
                   <PasswordField
                     id="reset-new-password"
-                    label="New password"
+                    label={t('New password')}
                     value={password}
                     onChange={(value) => { setPassword(value); clearError('password', 'confirm'); setStatus(''); }}
                     autoComplete="new-password"
-                    placeholder="Enter your new password"
+                    placeholder={t('Enter your new password')}
                     minLength={8}
                     error={errors.password}
                     hint={PASSWORD_HINT}
                   />
                   <PasswordField
                     id="reset-confirm-password"
-                    label="Confirm new password"
+                    label={t('Confirm new password')}
                     value={confirm}
                     onChange={(value) => { setConfirm(value); clearError('confirm'); setStatus(''); }}
                     autoComplete="new-password"
-                    placeholder="Enter it again"
+                    placeholder={t('Enter it again')}
                     error={errors.confirm}
                   />
                   <p className="auth-status" role="status" aria-live="polite">{configError || status}</p>
                   <button className="btn primary auth-submit" type="submit" disabled={busy}>
-                    {busy ? 'Updating…' : <>Change password <Icon name="arrow-right" /></>}
+                    {busy ? t('Updating…') : <>{t('Change password')} <Icon name="arrow-right" /></>}
                   </button>
                 </form>
-                <p className="auth-security-note"><Icon name="lock" /> Your password is updated through a secure Supabase session.</p>
+                <p className="auth-security-note"><Icon name="lock" /> {t('Your password is updated through a secure Supabase session.')}</p>
               </>
             ) : (
               <div className="auth-result" role="alert">
                 <div className="auth-result-icon warning"><Icon name="alert" /></div>
-                <span className="auth-overline">LINK UNAVAILABLE</span>
-                <h1>Reset link expired</h1>
-                <p>Request a new password reset link and open the latest email from Lega.</p>
-                <a className="btn primary auth-submit" href="#/forgot-password">Request a new link <Icon name="arrow-right" /></a>
+                <span className="auth-overline">{t('LINK UNAVAILABLE')}</span>
+                <h1>{t('Reset link expired')}</h1>
+                <p>{t('Request a new password reset link and open the latest email from Lega.')}</p>
+                <a className="btn primary auth-submit" href="#/forgot-password">{t('Request a new link')} <Icon name="arrow-right" /></a>
               </div>
             )}
           </section>
 
           <section className={`auth-panel${route === 'register' ? ' active' : ''}`} id="page-register" aria-labelledby="register-title">
             <div className="auth-heading">
-              <span className="auth-overline">GET STARTED</span>
-              <h1 id="register-title">Create your account</h1>
-              <p>A simple start to a clearer money picture.</p>
+              <span className="auth-overline">{t('GET STARTED')}</span>
+              <h1 id="register-title">{t('Create your account')}</h1>
+              <p>{t('A simple start to a clearer money picture.')}</p>
             </div>
             <form className="auth-form" onSubmit={submitRegister} noValidate>
               <div className={`input${errors.name ? ' error' : ''}`} data-field="name">
-                <label htmlFor="register-name">Your name</label>
+                <label htmlFor="register-name">{t('Your name')}</label>
                 <input
                   id="register-name"
                   type="text"
                   autoComplete="name"
                   maxLength={40}
-                  placeholder="What should we call you?"
+                  placeholder={t('What should we call you?')}
                   value={name}
                   onChange={(event) => { setName(event.target.value); clearError('name'); setStatus(''); }}
                   required
@@ -429,13 +430,13 @@ export function AuthPage() {
                 {errors.name && <small className="field-error">{errors.name}</small>}
               </div>
               <div className={`input${errors.email ? ' error' : ''}`} data-field="email">
-                <label htmlFor="register-email">Email address</label>
+                <label htmlFor="register-email">{t('Email address')}</label>
                 <input
                   id="register-email"
                   type="email"
                   autoComplete="email"
                   inputMode="email"
-                  placeholder="you@example.com"
+                  placeholder={t('you@example.com')}
                   value={email}
                   onChange={(event) => { setEmail(event.target.value); clearError('email'); setStatus(''); }}
                   required
@@ -444,34 +445,34 @@ export function AuthPage() {
               </div>
               <PasswordField
                 id="register-password"
-                label="Password"
+                label={t('Password')}
                 value={password}
                 onChange={(value) => { setPassword(value); clearError('password', 'confirm'); setStatus(''); }}
                 autoComplete="new-password"
-                placeholder="Enter your password"
+                placeholder={t('Enter your password')}
                 minLength={8}
                 error={errors.password}
                 hint={PASSWORD_HINT}
               />
               <PasswordField
                 id="register-confirm"
-                label="Confirm password"
+                label={t('Confirm password')}
                 value={confirm}
                 onChange={(value) => { setConfirm(value); clearError('confirm'); setStatus(''); }}
                 autoComplete="new-password"
-                placeholder="Enter your password again"
+                placeholder={t('Enter your password again')}
                 error={errors.confirm}
               />
               <p className="auth-status" id="register-status" role="status" aria-live="polite">
                 {configError || status}
               </p>
               <button className="btn primary auth-submit" type="submit" disabled={busy}>
-                {busy ? 'Please wait…' : <>Create account <Icon name="arrow-right" /></>}
+                {busy ? t('Please wait…') : <>{t('Create account')} <Icon name="arrow-right" /></>}
               </button>
             </form>
-            <p className="auth-switch">Already have an account? <a href="#/login">Log in</a></p>
+            <p className="auth-switch">{t('Already have an account?')} <a href="#/login">{t('Log in')}</a></p>
             <p className="auth-local-note">
-              One account per email. Your wallets, categories, and transactions are tied to this account.
+              {t('One account per email. Your wallets, categories, and transactions are tied to this account.')}
             </p>
           </section>
         </main>

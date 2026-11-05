@@ -4,10 +4,12 @@
    (walletCard, walletRow, addWalletRow, transactionRow).
    ============================================================ */
 
+import { t } from '../i18n';
 import type { Currency, Category, Transaction, TransferPeer, Wallet, WalletWithBalance } from '../types';
 import { formatCurrency, formatSigned, formatDateRelative, txCount } from '../lib/format';
 import { resolveCategory } from '../lib/selectors';
 import { Icon, type IconName } from './IconSprite';
+import { CategoryIcon } from './Ui';
 
 /** Kartu wallet (dashboard). `onEdit`/`onDelete` kosong = tanpa tombol aksi.
  *  `onOpen` kosong = kartu tidak bisa di-tap (dipertahankan buat konteks lain). */
@@ -38,8 +40,8 @@ export function WalletCard({
               <button
                 className="wallet-menu"
                 type="button"
-                aria-label={`Edit wallet ${wallet.name}`}
-                title="Edit"
+                aria-label={t('Edit wallet {name}', { name: wallet.name })}
+                title={t('Edit')}
                 onClick={(event) => { event.stopPropagation(); onEdit(wallet.id); }}
               >
                 <Icon name="edit" />
@@ -49,8 +51,8 @@ export function WalletCard({
               <button
                 className="wallet-menu"
                 type="button"
-                aria-label={`Delete wallet ${wallet.name}`}
-                title="Delete"
+                aria-label={t('Delete wallet {name}', { name: wallet.name })}
+                title={t('Delete')}
                 onClick={(event) => { event.stopPropagation(); onDelete(wallet.id); }}
               >
                 <Icon name="close" />
@@ -61,7 +63,7 @@ export function WalletCard({
       </div>
       <div className="wallet-balance num">{formatBalance(wallet.balance, wallet.currency)}</div>
       <div className="wallet-meta">{wallet.typeLabel} · {txCount(wallet.transactionCount)}</div>
-      {negative && <div className="wallet-hint">This wallet is in the red — check its transactions.</div>}
+      {negative && <div className="wallet-hint">{t('Balance below zero')}</div>}
     </>
   );
 
@@ -73,7 +75,7 @@ export function WalletCard({
     <button
       className={`wallet${negative ? ' negative' : ''}`}
       type="button"
-      aria-label={`Open ${wallet.name}`}
+      aria-label={t('Open {name}', { name: wallet.name })}
       onClick={() => onOpen(wallet.id)}
     >
       {body}
@@ -84,8 +86,8 @@ export function WalletCard({
 export function AddWalletCard({ onClick }: { onClick: () => void }) {
   return (
     <button className="wallet add-wallet" type="button" onClick={onClick}>
-      <div className="wallet-name"><span className="wallet-icon"><Icon name="plus" /></span>Add wallet</div>
-      <div className="wallet-meta" style={{ marginTop: 18 }}>Somewhere new to keep money</div>
+      <div className="wallet-name"><span className="wallet-icon"><Icon name="plus" /></span>{t('Add wallet')}</div>
+      <div className="wallet-meta" style={{ marginTop: 18 }}>{t('Somewhere new to keep money')}</div>
     </button>
   );
 }
@@ -109,7 +111,7 @@ export function WalletRow({
       data-drag-id={wallet.id}
       tabIndex={0}
       role="button"
-      aria-label={`Open ${wallet.name}. Drag to reorder.`}
+      aria-label={t('Open {name}. Drag to reorder.', { name: wallet.name })}
       onClick={() => onOpen(wallet.id)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -134,8 +136,8 @@ export function AddWalletRow({ onClick }: { onClick: () => void }) {
     <button className="add-wallet-row" type="button" onClick={onClick}>
       <span className="wallet-icon"><Icon name="plus" /></span>
       <span className="wallet-row-body">
-        <span className="wallet-row-name">Add wallet</span>
-        <small>Somewhere new to keep money</small>
+        <span className="wallet-row-name">{t('Add wallet')}</span>
+        <small>{t('Somewhere new to keep money')}</small>
       </span>
     </button>
   );
@@ -163,11 +165,11 @@ export function TransactionRow({
 }) {
   const category = resolveCategory(categories, transaction.categoryId);
   const wallet = wallets.find((item) => item.id === transaction.walletId);
-  const walletName = wallet ? wallet.name : 'Deleted wallet';
+  const walletName = wallet ? wallet.name : t('Deleted wallet');
   const isTransfer = transaction.isTransfer;
 
   function nameOf(id: string | null | undefined) {
-    return wallets.find((item) => item.id === id)?.name || 'Deleted wallet';
+    return wallets.find((item) => item.id === id)?.name || t('Deleted wallet');
   }
 
   // Transfer bukan income/expense — ditampilkan netral (tanpa +/− dan tanpa
@@ -177,12 +179,12 @@ export function TransactionRow({
     : '';
   const metaParts = isTransfer ? [route] : [category.name, walletName];
   if (showDate) metaParts.unshift(formatDateRelative(transaction.date));
-  const title = isTransfer ? (transaction.note || 'Transfer') : (transaction.note || category.name);
+  const title = isTransfer ? (transaction.note || t('Transfer')) : (transaction.note || category.name);
 
   const body = (
     <>
       <span className="transaction-icon" aria-hidden="true">
-        {isTransfer ? <Icon name="transfer" /> : category.icon}
+        {isTransfer ? <Icon name="transfer" /> : <CategoryIcon icon={category.icon} />}
       </span>
       <span className="transaction-body">
         <span className="transaction-title">{title}</span>
@@ -205,7 +207,7 @@ export function TransactionRow({
       className="transaction"
       data-id={transaction.id}
       type="button"
-      aria-label={`Edit ${title}`}
+      aria-label={t('Edit {title}', { title })}
       onClick={() => onOpen(transaction.id)}
     >
       {body}

@@ -11,9 +11,11 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import { t } from '../i18n';
 import { Icon, type IconName } from './IconSprite';
 import { createPortal } from 'react-dom';
 import { useFloatingPopover } from '../lib/floating';
+import { isImageIcon } from '../lib/categoryIcon';
 
 const escapeLayers: (() => void)[] = [];
 let modalCount = 0;
@@ -44,7 +46,7 @@ function useEscapeLayer(active: boolean, close: () => void) {
    ============================================================ */
 export function EmptyState({
   icon = 'receipt',
-  title = 'Nothing here yet',
+  title = t('Nothing here yet'),
   message = '',
   actionLabel,
   onAction,
@@ -131,7 +133,7 @@ export function ModalHead({
   title,
   desc,
   onClose,
-  closeLabel = 'Close dialog',
+  closeLabel = t('Close dialog'),
   actions
 }: {
   id?: string;
@@ -268,8 +270,17 @@ export function Dropdown({
   );
 }
 
+/** Ikon kategori: emoji sebagai teks, atau gambar custom (data URL). */
+export function CategoryIcon({ icon, inline = false }: { icon: string; inline?: boolean }) {
+  return isImageIcon(icon)
+    ? <img className={inline ? 'icon-inline' : 'icon-img'} src={icon} alt="" draggable={false} />
+    : <>{icon}</>;
+}
+
 function optionLabel(option: DropdownOption) {
-  return (option.icon ? option.icon + '  ' : '') + option.label;
+  if (!option.icon) return option.label;
+  // Satu elemen pembungkus: tombol opsi memakai flex, jadi gambar + teks tidak boleh jadi dua item.
+  return <span><CategoryIcon icon={option.icon} inline />{isImageIcon(option.icon) ? ' ' : '  '}{option.label}</span>;
 }
 
 /** Tutup popover saat klik di luar atau tekan Escape.
@@ -364,7 +375,7 @@ export function PageSkeleton() {
 
 /** Loader kecil di ujung daftar yang dimuat bertahap (bukan overlay layar
  *  penuh seperti <Loading />). Pakai mark yang sama supaya konsisten. */
-export function InlineLoader({ label = 'Loading more' }: { label?: string }) {
+export function InlineLoader({ label = t('Loading more') }: { label?: string }) {
   return (
     <div className="lega-inline-loader" role="status" aria-label={label} aria-live="polite">
       <LegaLoader className="lega-inline-loader-mark" />
@@ -372,7 +383,7 @@ export function InlineLoader({ label = 'Loading more' }: { label?: string }) {
   );
 }
 
-export function Loading({ message = 'Memuat Lega' }: { message?: string }) {
+export function Loading({ message = t('Loading Lega') }: { message?: string }) {
   useEffect(() => {
     const root = document.getElementById('root');
     const wasInert = root?.inert ?? false;

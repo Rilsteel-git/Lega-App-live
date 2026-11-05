@@ -5,6 +5,7 @@
    ============================================================ */
 
 import { type ReactNode } from 'react';
+import { t } from '../i18n';
 import { useAppData } from '../context/AppDataContext';
 import { Avatar } from './Avatar';
 import type { Profile } from '../types';
@@ -17,32 +18,32 @@ const ROUTES: Route[] = ['dashboard', 'wallets', 'transactions', 'categories', '
 
 /** Judul & subjudul topbar per halaman — sama dengan TITLES di render.js. */
 export const TITLES: Record<Route, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard', subtitle: 'Track your wallets and understand where your money goes.' },
-  wallets: { title: 'Wallets', subtitle: 'Every place your money lives.' },
-  transactions: { title: 'Transactions', subtitle: 'Search, filter, and manage everything you have recorded.' },
-  categories: { title: 'Categories', subtitle: 'Group your transactions so the numbers mean something.' },
-  statistics: { title: 'Statistics', subtitle: 'See how your income and spending move over time.' },
-  profile: { title: 'Profile', subtitle: 'Your details, settings, and app data.' },
-  settings: { title: 'Settings', subtitle: 'Manage your app preferences and report currency.' }
+  dashboard: { title: t('Dashboard'), subtitle: t('Track your wallets and understand where your money goes.') },
+  wallets: { title: t('Wallets'), subtitle: t('Every place your money lives.') },
+  transactions: { title: t('Transactions'), subtitle: t('Search, filter, and manage everything you have recorded.') },
+  categories: { title: t('Categories'), subtitle: t('Group your transactions so the numbers mean something.') },
+  statistics: { title: t('Statistics'), subtitle: t('See how your income and spending move over time.') },
+  profile: { title: t('Profile'), subtitle: t('Your details, settings, and app data.') },
+  settings: { title: t('Settings'), subtitle: t('Manage your app preferences and report currency.') }
 };
 
 /** Halaman yang dibuka dari profil: tampilkan tombol kembali di topbar. */
 const PARENT_ROUTE: Partial<Record<Route, Route>> = { wallets: 'profile', categories: 'profile', settings: 'profile' };
 
 const SIDE_NAV: { route: Route; label: string; icon: IconName }[] = [
-  { route: 'dashboard', label: 'Dashboard', icon: 'home' },
-  { route: 'wallets', label: 'Wallets', icon: 'wallet' },
-  { route: 'transactions', label: 'Transactions', icon: 'transfer' },
-  { route: 'categories', label: 'Categories', icon: 'category' },
-  { route: 'statistics', label: 'Statistics', icon: 'stats' },
-  { route: 'profile', label: 'Profile', icon: 'user' }
+  { route: 'dashboard', label: t('Dashboard'), icon: 'home' },
+  { route: 'wallets', label: t('Wallets'), icon: 'wallet' },
+  { route: 'transactions', label: t('Transactions'), icon: 'transfer' },
+  { route: 'categories', label: t('Categories'), icon: 'category' },
+  { route: 'statistics', label: t('Statistics'), icon: 'stats' },
+  { route: 'profile', label: t('Profile'), icon: 'user' }
 ];
 
 const MOBILE_NAV: { route: Route; label: string; icon: IconName }[] = [
-  { route: 'dashboard', label: 'Home', icon: 'home' },
-  { route: 'transactions', label: 'Activity', icon: 'transfer' },
-  { route: 'statistics', label: 'Stats', icon: 'stats' },
-  { route: 'profile', label: 'Profile', icon: 'user' }
+  { route: 'dashboard', label: t('Home'), icon: 'home' },
+  { route: 'transactions', label: t('Activity'), icon: 'transfer' },
+  { route: 'statistics', label: t('Stats'), icon: 'stats' },
+  { route: 'profile', label: t('Profile'), icon: 'user' }
 ];
 
 export function getRoute(): Route {
@@ -69,8 +70,8 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
         {/* ================= SIDEBAR (desktop) ================= */}
         <aside className="sidebar">
           <div className="brand"><span className="brand-mark"><LegaMark /></span>Lega</div>
-          <div className="nav-caption">Menu</div>
-          <nav className="side-nav" id="side-nav" aria-label="Main navigation">
+          <div className="nav-caption">{t('Menu')}</div>
+          <nav className="side-nav" id="side-nav" aria-label={t('Main navigation')}>
             {SIDE_NAV.map((item) => (
               <a
                 key={item.route}
@@ -84,8 +85,8 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
             ))}
           </nav>
           <div className="sidebar-tip">
-            <strong>Synced to your account</strong>
-            Wallets and transactions are saved to your account, not just this browser.
+            <strong>{t('Synced to your account')}</strong>
+            {t('Wallets and transactions are saved to your account, not just this browser.')}
           </div>
         </aside>
 
@@ -99,14 +100,14 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
                     className="topbar-back"
                     type="button"
                     id="topbar-back"
-                    aria-label="Go back"
+                    aria-label={t('Go back')}
                     onClick={() => navigate(parent)}
                   >
                     <Icon name="chevron-left" />
                   </button>
                 )}
                 <p className="eyebrow" id="topbar-eyebrow">Lega</p>
-                <a className="topbar-profile" href="#/profile" aria-label="Open profile">
+                <a className="topbar-profile" href="#/profile" aria-label={t('Open profile')}>
                   <Avatar
                     id="topbar-avatar"
                     className="topbar-avatar"
@@ -127,7 +128,7 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
       </div>
 
       {/* ================= MOBILE NAV ================= */}
-      <nav className="mobile-nav" id="mobile-nav" aria-label="Main navigation">
+      <nav className="mobile-nav" id="mobile-nav" aria-label={t('Main navigation')}>
         {MOBILE_NAV.map((item) => (
           <a
             key={item.route}

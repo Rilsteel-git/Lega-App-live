@@ -4,6 +4,7 @@
    ============================================================ */
 
 import { useCallback } from 'react';
+import { t } from '../i18n';
 import { useReport } from '../hooks/useReport';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
@@ -19,8 +20,8 @@ export function WalletsPage() {
   const list = withBalances(wallets, transactions);
   const handleReorder = useCallback((ids: string[]) => {
     void reorderWallets(ids)
-      .then(() => toast('Wallet order updated'))
-      .catch((reason) => toast(reason instanceof Error ? reason.message : 'Could not reorder wallets.', { variant: 'error' }));
+      .then(() => toast(t('Wallet order updated')))
+      .catch((reason) => toast(reason instanceof Error ? reason.message : t('Could not reorder wallets.'), { variant: 'error' }));
   }, [reorderWallets, toast]);
   const walletIds = list.map((wallet) => wallet.id);
   const { order, containerRef, draggingId } = useReorderableList(walletIds, handleReorder);
@@ -29,23 +30,23 @@ export function WalletsPage() {
   const { total, formatBalance: reportBalance, currency } = useReport();
 
   return (
-    <section className="page active" id="page-wallets" aria-label="Wallets">
+    <section className="page active" id="page-wallets" aria-label={t('Wallets')}>
       <div className="stack">
         <article className="card">
           <div className="card-head">
-            <div><h2>Combined balance ({currency})</h2><p>Estimated using manual wallet rates</p></div>
+            <div><h2>{t('Combined balance ({currency})', { currency })}</h2><p>{t('Estimated using manual wallet rates')}</p></div>
           </div>
           <div className="stat-grid">
             <div className="stat">
-              <small>Total balance</small>
+              <small>{t('Total balance')}</small>
               <strong className="num" id="wallets-total">{reportBalance(total)}</strong>
             </div>
             <div className="stat">
-              <small>Wallets</small>
+              <small>{t('Wallets')}</small>
               <strong className="num" id="wallets-count">{list.length}</strong>
             </div>
             <div className="stat">
-              <small>Transactions</small>
+              <small>{t('Transactions')}</small>
               <strong className="num" id="wallets-tx-count">{transactions.length}</strong>
             </div>
           </div>
@@ -53,7 +54,7 @@ export function WalletsPage() {
 
         <article className="card">
           <div className="card-head">
-            <div><h2>All wallets</h2><p>Balances update automatically as you add transactions</p></div>
+            <div><h2>{t('All wallets')}</h2><p>{t('Balances update automatically as you add transactions')}</p></div>
           </div>
           <div className="wallet-list" id="wallets-list" ref={containerRef}>
             {list.length ? (
@@ -72,9 +73,9 @@ export function WalletsPage() {
             ) : (
               <EmptyState
                 icon="wallet"
-                title="No wallets yet"
-                message="Create one for each place you keep money — a bank, an e-wallet, or cash."
-                actionLabel="Add wallet"
+                title={t('No wallets yet')}
+                message={t('Create one for each place you keep money — a bank, an e-wallet, or cash.')}
+                actionLabel={t('Add wallet')}
                 onAction={() => openModal({ kind: 'wallet' })}
               />
             )}

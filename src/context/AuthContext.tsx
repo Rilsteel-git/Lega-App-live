@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { t } from '../i18n';
 
 const NATIVE_AUTH_CALLBACK = 'com.rilsteel.maniapp://login-callback';
 const PASSWORD_RECOVERY_STORAGE_KEY = 'lega-password-recovery-session';
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
-      setError('Supabase belum dikonfigurasi. Isi file .env.local terlebih dahulu.');
+      setError(t('Supabase is not configured yet. Fill in the .env.local file first.'));
       return;
     }
     const client = supabase;
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (recoveryRequested) showPasswordResetPage();
       setLoading(false);
     }).catch((reason: unknown) => {
-      setError(reason instanceof Error ? reason.message : 'Could not restore your session.');
+      setError(reason instanceof Error ? reason.message : t('Could not restore your session.'));
       setLoading(false);
     });
     const { data: listener } = client.auth.onAuthStateChange((event, nextSession) => {
@@ -122,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!disposed) {
           if (isRecovery) {
-            if (!code && !(accessToken && refreshToken)) throw new Error('This password reset link is invalid or expired.');
+            if (!code && !(accessToken && refreshToken)) throw new Error(t('This password reset link is invalid or expired.'));
             setStoredPasswordRecovery(true);
             setPasswordRecovery(true);
             showPasswordResetPage();
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (reason) {
-        if (!disposed) setError(reason instanceof Error ? reason.message : 'Could not complete email confirmation.');
+        if (!disposed) setError(reason instanceof Error ? reason.message : t('Could not complete email confirmation.'));
       }
     };
 
@@ -157,12 +158,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase belum dikonfigurasi.');
+    if (!isSupabaseConfigured || !supabase) throw new Error(t('Supabase is not configured.'));
     setError('');
     const { error: result } = await supabase.auth.signInWithPassword({ email, password });
     if (result) {
       if (result.code === 'email_not_confirmed') {
-        throw new Error('Please confirm your email before logging in.');
+        throw new Error(t('Please confirm your email before logging in.'));
       }
       throw result;
     }
@@ -170,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(name: string, email: string, password: string): Promise<SignUpResult> {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase belum dikonfigurasi.');
+    if (!isSupabaseConfigured || !supabase) throw new Error(t('Supabase is not configured.'));
     setError('');
     const { data, error: result } = await supabase.auth.signUp({
       email,
@@ -194,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function requestPasswordReset(email: string) {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase belum dikonfigurasi.');
+    if (!isSupabaseConfigured || !supabase) throw new Error(t('Supabase is not configured.'));
     setError('');
     setStoredPasswordRecovery(false);
     setPasswordRecovery(false);
@@ -208,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function updatePassword(password: string) {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase belum dikonfigurasi.');
+    if (!isSupabaseConfigured || !supabase) throw new Error(t('Supabase is not configured.'));
     setError('');
     const { error: result } = await supabase.auth.updateUser({ password });
     if (result) throw result;

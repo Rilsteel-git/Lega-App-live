@@ -5,6 +5,7 @@
    ============================================================ */
 
 import { useEffect, useRef, useState } from 'react';
+import { t, tp } from '../i18n';
 import type {
   Currency,
   Category,
@@ -18,8 +19,7 @@ import {
   formatCurrency,
   formatDateID,
   formatSigned,
-  today,
-  txCount
+  today
 } from '../lib/format';
 import {
   CATEGORY_ICONS,
@@ -33,7 +33,11 @@ import {
 } from '../lib/selectors';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
-import { Dropdown, EmptyState, InlineLoader, Modal, ModalHead, Segmented } from './Ui';
+import { CategoryIcon, Dropdown, EmptyState, InlineLoader, Modal, ModalHead, Segmented } from './Ui';
+import {
+  DEFAULT_CATEGORY_ICON, ICON_ACCEPT, ICON_SIZE, encodeIconCanvas, isImageIcon, validateIconFile
+} from '../lib/categoryIcon';
+import { ImageCropper } from './ImageCropper';
 import { SingleDatePicker } from './DatePicker';
 import { Icon, type IconName } from './IconSprite';
 import { Avatar } from './Avatar';
@@ -96,7 +100,7 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
       setRate(String(value));
       clearError('rate');
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not fetch the live rate.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not fetch the live rate.'), { variant: 'error' });
     } finally {
       setFetchingRate(false);
     }
@@ -107,9 +111,9 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
     const trimmed = name.trim();
     const amount = balance.trim() ? readDecimal(balance) : 0;
     const next: Errors = {};
-    if (!trimmed) next.name = 'Give your wallet a name.';
-    if (!validAmount(amount, currency)) next.balance = `Enter a valid amount (max ${fractionDigits(currency)} decimal places).`;
-    if (!validRate(exchangeRate)) next.rate = 'Enter a positive IDR exchange rate.';
+    if (!trimmed) next.name = t('Give your wallet a name.');
+    if (!validAmount(amount, currency)) next.balance = t('Enter a valid amount (max {digits} decimal places).', { digits: fractionDigits(currency) });
+    if (!validRate(exchangeRate)) next.rate = t('Enter a positive IDR exchange rate.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -117,14 +121,14 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
     try {
       if (wallet) {
         await editWallet(wallet.id, { name: trimmed, type, initialBalance: amount, currency, exchangeRate });
-        toast(trimmed + ' updated');
+        toast(t('{name} updated', { name: trimmed }));
       } else {
         await addWallet({ name: trimmed, type, initialBalance: amount, currency, exchangeRate });
-        toast(trimmed + ' added');
+        toast(t('{name} added', { name: trimmed }));
       }
       closeModal();
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not save wallet.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not save wallet.'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -138,44 +142,44 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
       head={
         <ModalHead
           id="wallet-modal-title"
-          title={wallet ? 'Edit wallet' : 'New wallet'}
-          desc={wallet ? 'Change the name, type, or starting balance.' : 'Add a place where your money lives.'}
-          closeLabel="Close wallet dialog"
+          title={wallet ? t('Edit wallet') : t('New wallet')}
+          desc={wallet ? t('Change the name, type, or starting balance.') : t('Add a place where your money lives.')}
+          closeLabel={t('Close wallet dialog')}
           onClose={closeModal}
         />
       }
       foot={
         <div className="modal-foot">
-          <button className="btn secondary" type="button" onClick={closeModal}>Cancel</button>
-          <button className="btn primary" type="submit" form="wallet-form" disabled={busy}>Save</button>
+          <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
+          <button className="btn primary" type="submit" form="wallet-form" disabled={busy}>{t('Save')}</button>
         </div>
       }
     >
       <form id="wallet-form" onSubmit={submit} noValidate>
         <div className="form-grid">
-          <Field name="name" label="Wallet name" error={errors.name} full htmlFor="wallet-name">
+          <Field name="name" label={t('Wallet name')} error={errors.name} full htmlFor="wallet-name">
             <input
               id="wallet-name"
               name="name"
               type="text"
-              placeholder="e.g. BCA"
+              placeholder={t('e.g. BCA')}
               autoComplete="off"
               value={name}
               onChange={(event) => { setName(event.target.value); clearError('name'); }}
             />
           </Field>
-          <Field name="type" label="Type" htmlFor="wallet-type">
+          <Field name="type" label={t('Type')} htmlFor="wallet-type">
             <Dropdown
               id="wallet-type"
-              label="Wallet type"
+              label={t('Wallet type')}
               value={type}
               onChange={(value) => setType(value as WalletType)}
               options={WALLET_TYPES.map((item) => ({ value: item.value, label: item.label }))}
             />
           </Field>
-          <Field label="Wallet currency" full>
+          <Field label={t('Wallet currency')} full>
             <Dropdown
-              label="Wallet currency"
+              label={t('Wallet currency')}
               value={currency}
               options={currencyOptions}
               disabled={Boolean(wallet)}
@@ -187,20 +191,20 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
             />
             {wallet && (
               <small className="hint-info">
-                Currency is fixed after a wallet is created. Create another wallet to use a different currency.
+                {t('Currency is fixed after a wallet is created. Create another wallet to use a different currency.')}
               </small>
             )}
           </Field>
-          {currency !== 'IDR' && <Field label={`Wallet rate: 1 ${currency} = … IDR`} error={errors.rate} full htmlFor="wallet-rate">
+          {currency !== 'IDR' && <Field label={t('Wallet rate: 1 {currency} = … IDR', { currency })} error={errors.rate} full htmlFor="wallet-rate">
             <div className="rate-input-row">
-              <input id="wallet-rate" inputMode="decimal" value={rate} placeholder="Enter your rate" onChange={(e) => { setRate(e.target.value); clearError('rate'); }} />
+              <input id="wallet-rate" inputMode="decimal" value={rate} placeholder={t('Enter your rate')} onChange={(e) => { setRate(e.target.value); clearError('rate'); }} />
               <button className="btn secondary rate-fetch-btn" type="button" disabled={fetchingRate} onClick={useLiveRate}>
-                <Icon name="refresh" className={`svg-icon${fetchingRate ? ' spin' : ''}`} /> {fetchingRate ? 'Fetching…' : 'Get live rate'}
+                <Icon name="refresh" className={`svg-icon${fetchingRate ? ' spin' : ''}`} /> {fetchingRate ? t('Fetching…') : t('Get live rate')}
               </button>
             </div>
-            <small className="hint-info">Used to estimate this wallet’s balance in reports. Transaction rates are saved separately. Not a live rate — click "Get live rate" to fill in today's rate, then adjust if you need to.</small>
+            <small className="hint-info">{t('Used to estimate this wallet’s balance in reports. Transaction rates are saved separately. Not a live rate — click "Get live rate" to fill in today\'s rate, then adjust if you need to.')}</small>
           </Field>}
-          <Field name="balance" label={`Starting balance (${currency})`} error={errors.balance} htmlFor="wallet-balance">
+          <Field name="balance" label={t('Starting balance ({currency})', { currency })} error={errors.balance} htmlFor="wallet-balance">
             <input
               id="wallet-balance"
               name="balance"
@@ -210,7 +214,7 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
               value={balance}
               onChange={(event) => { setBalance(event.target.value); clearError('balance'); }}
             />
-            <small className="hint-ticker">Money already in this wallet before you start tracking. It won't count as this month's income — use the Income button for money coming in from now on.</small>
+            <small className="hint-ticker">{t('Money already in this wallet before you start tracking. It won\'t count as this month\'s income — use the Income button for money coming in from now on.')}</small>
           </Field>
         </div>
       </form>
@@ -251,15 +255,15 @@ function WalletDetailModal({ walletId }: { walletId: string }) {
             <span className="wallet-icon" aria-hidden="true"><Icon name={detail.icon as IconName} /></span>
             <div>
               <h2 id="wallet-detail-title">{detail.name}</h2>
-              <p>{detail.typeLabel} · {txCount(detail.transactions.length)}</p>
+              <p>{detail.typeLabel} · {tp(detail.transactions.length, '{count} transaction', '{count} transactions')}</p>
             </div>
           </div>
           <div className="wallet-detail-actions">
             <button
               className="icon-btn"
               type="button"
-              aria-label="Edit wallet"
-              title="Edit wallet"
+              aria-label={t('Edit wallet')}
+              title={t('Edit wallet')}
               onClick={() => openModal({ kind: 'wallet', id: walletId })}
             >
               <Icon name="edit" />
@@ -267,13 +271,13 @@ function WalletDetailModal({ walletId }: { walletId: string }) {
             <button
               className="icon-btn danger"
               type="button"
-              aria-label="Delete wallet"
-              title="Delete wallet"
+              aria-label={t('Delete wallet')}
+              title={t('Delete wallet')}
               onClick={() => remove(walletId)}
             >
               <Icon name="trash" />
             </button>
-            <button className="icon-btn" type="button" aria-label="Close wallet details" onClick={closeModal}>
+            <button className="icon-btn" type="button" aria-label={t('Close wallet details')} onClick={closeModal}>
               <Icon name="close" />
             </button>
           </div>
@@ -283,13 +287,13 @@ function WalletDetailModal({ walletId }: { walletId: string }) {
       <div className="modal-body">
         <div className="wallet-detail-balance">
           <small>
-            Current balance
+            {t('Current balance')}
             <button
               type="button"
               className="hero-eye"
               aria-pressed={balanceHidden}
-              aria-label={balanceHidden ? 'Show balance' : 'Hide balance'}
-              title={balanceHidden ? 'Show balance' : 'Hide balance'}
+              aria-label={balanceHidden ? t('Show balance') : t('Hide balance')}
+              title={balanceHidden ? t('Show balance') : t('Hide balance')}
               onClick={toggleBalance}
             >
               <Icon name={balanceHidden ? 'eye-off' : 'eye'} />
@@ -302,22 +306,22 @@ function WalletDetailModal({ walletId }: { walletId: string }) {
           type="button"
           onClick={() => openModal({ kind: 'transfer', fromWalletId: walletId })}
         >
-          <Icon name="transfer" /> Transfer money
+          <Icon name="transfer" /> {t('Transfer money')}
         </button>
         <div className={`wallet-detail-stats stat-grid${hasTransfers ? ' has-transfers' : ''}`}>
-          <div className="stat"><small>Starting</small><strong className="num">{formatCurrency(detail.initialBalance, detail.currency)}</strong></div>
-          <div className="stat"><small>Money in</small><strong className="num income">{formatCurrency(detail.income, detail.currency)}</strong></div>
-          <div className="stat"><small>Money out</small><strong className="num expense">{formatCurrency(detail.expense, detail.currency)}</strong></div>
+          <div className="stat"><small>{t('Starting')}</small><strong className="num">{formatCurrency(detail.initialBalance, detail.currency)}</strong></div>
+          <div className="stat"><small>{t('Money in')}</small><strong className="num income">{formatCurrency(detail.income, detail.currency)}</strong></div>
+          <div className="stat"><small>{t('Money out')}</small><strong className="num expense">{formatCurrency(detail.expense, detail.currency)}</strong></div>
           {hasTransfers && (
             <div className="stat">
-              <small>Transfers</small>
+              <small>{t('Transfers')}</small>
               <strong className="num">{(transfersNet > 0 ? '+' : transfersNet < 0 ? '−' : '') + formatCurrency(Math.abs(transfersNet), detail.currency)}</strong>
             </div>
           )}
         </div>
         <div className="wallet-detail-history-section">
           <div className="wallet-detail-history-head">
-            <div><h3>Activity</h3><p>Recent transactions from this wallet</p></div>
+            <div><h3>{t('Activity')}</h3><p>{t('Recent transactions from this wallet')}</p></div>
           </div>
           <div className="transactions wallet-detail-history">
             {detail.transactions.length ? (
@@ -341,8 +345,8 @@ function WalletDetailModal({ walletId }: { walletId: string }) {
             ) : (
               <EmptyState
                 icon="receipt"
-                title="No activity yet"
-                message="Transactions from this wallet will show up here."
+                title={t('No activity yet')}
+                message={t('Transactions from this wallet will show up here.')}
               />
             )}
           </div>
@@ -364,8 +368,25 @@ function CategoryModal({ category }: { category: Category | null }) {
   const [showAllIcons, setShowAllIcons] = useState(false);
   const { errors, setErrors, clearError } = useFormErrors();
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const iconInput = useRef<HTMLInputElement>(null);
+  // Ikon yang tidak ada di daftar bawaan (gambar custom, atau emoji lama) tetap
+  // tampil & terpilih di grid supaya pengguna bisa melihat dan mengganti-nya.
   const currentIconOption = CATEGORY_ICONS.find((item) => item.icon === icon) ||
-    (category ? { icon: category.icon, label: 'Current' } : null);
+    (icon ? { icon, label: isImageIcon(icon) ? t('Custom') : t('Current') } : null);
+
+  async function uploadIcon(file: File) {
+    setUploading(true);
+    try {
+      await validateIconFile(file);
+      setCropFile(file);
+    } catch (reason) {
+      toast(reason instanceof Error ? reason.message : t('Could not use that image.'), { variant: 'error' });
+    } finally {
+      setUploading(false);
+    }
+  }
   const availableIcons = currentIconOption && !CATEGORY_ICONS.some((item) => item.icon === currentIconOption.icon)
     ? [currentIconOption, ...CATEGORY_ICONS]
     : CATEGORY_ICONS;
@@ -379,21 +400,21 @@ function CategoryModal({ category }: { category: Category | null }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) { setErrors({ name: 'Give your category a name.' }); return; }
+    if (!trimmed) { setErrors({ name: t('Give your category a name.') }); return; }
     setErrors({});
     setBusy(true);
     const payload: CategoryPayload = { name: trimmed, type, icon };
     try {
       if (category) {
         await editCategory(category.id, payload);
-        toast(trimmed + ' updated');
+        toast(t('{name} updated', { name: trimmed }));
       } else {
         await addCategory(payload);
-        toast(trimmed + ' added');
+        toast(t('{name} added', { name: trimmed }));
       }
       closeModal();
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not save category.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not save category.'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -408,59 +429,108 @@ function CategoryModal({ category }: { category: Category | null }) {
       head={
         <ModalHead
           id="category-modal-title"
-          title={category ? 'Edit category' : 'New category'}
-          desc="Name it, pick a type, and choose an icon."
-          closeLabel="Close category dialog"
+          title={category ? t('Edit category') : t('New category')}
+          desc={t('Name it, pick a type, and choose an icon.')}
+          closeLabel={t('Close category dialog')}
           onClose={closeModal}
         />
       }
       foot={
         <div className="modal-foot">
-          <button className="btn secondary" type="button" onClick={closeModal}>Cancel</button>
-          <button className="btn primary" type="submit" form="category-form" disabled={busy}>Save</button>
+          <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
+          <button className="btn primary" type="submit" form="category-form" disabled={busy}>{t('Save')}</button>
         </div>
       }
     >
       <form id="category-form" onSubmit={submit} noValidate>
         <div className="form-grid">
-          <Field name="name" label="Category name" error={errors.name} full htmlFor="category-name">
+          <Field name="name" label={t('Category name')} error={errors.name} full htmlFor="category-name">
             <input
               id="category-name"
               name="name"
               type="text"
-              placeholder="e.g. Hobbies"
+              placeholder={t('e.g. Hobbies')}
               autoComplete="off"
               value={name}
               onChange={(event) => { setName(event.target.value); clearError('name'); }}
             />
           </Field>
-          <Field name="type" label="Type" htmlFor="category-type">
+          <Field name="type" label={t('Type')} htmlFor="category-type">
             <Dropdown
               id="category-type"
-              label="Category type"
+              label={t('Category type')}
               value={type}
               onChange={(value) => setType(value as TransactionType)}
-              options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]}
+              options={[{ value: 'expense', label: t('Expense') }, { value: 'income', label: t('Income') }]}
             />
           </Field>
           <div className="input full">
-            <label id="category-icon-label">Icon</label>
+            <label id="category-icon-label">{t('Icon')}</label>
+            {cropFile && (
+              <ImageCropper
+                file={cropFile}
+                outputSize={ICON_SIZE}
+                shape="rounded"
+                title={t('Adjust icon')}
+                confirmLabel={t('Use icon')}
+                onCancel={() => setCropFile(null)}
+                onError={(message) => toast(message, { variant: 'error' })}
+                onConfirm={(canvas) => {
+                  try {
+                    setIcon(encodeIconCanvas(canvas));
+                    setCropFile(null);
+                  } catch (reason) {
+                    toast(reason instanceof Error ? reason.message : t('Could not use that image.'), { variant: 'error' });
+                  }
+                }}
+              />
+            )}
             <div className="category-picker" id="category-picker" role="listbox" aria-labelledby="category-icon-label">
               {visibleIcons.map((item) => (
                 <button
-                  key={item.icon}
+                  key={isImageIcon(item.icon) ? 'custom' : item.icon}
                   className={`category-choice${item.icon === icon ? ' selected' : ''}`}
                   type="button"
                   role="option"
                   aria-selected={item.icon === icon}
-                  data-icon={item.icon}
+                  data-icon={isImageIcon(item.icon) ? 'custom' : item.icon}
                   onClick={() => setIcon(item.icon)}
                 >
-                  <span className="category-icon" aria-hidden="true">{item.icon}</span>
+                  <span className="category-icon" aria-hidden="true"><CategoryIcon icon={item.icon} /></span>
                   <small>{item.label}</small>
                 </button>
               ))}
+              <button
+                className="category-choice category-upload"
+                type="button"
+                disabled={uploading}
+                onClick={() => iconInput.current?.click()}
+              >
+                <span className="category-icon" aria-hidden="true"><Icon name="plus" /></span>
+                <small>{uploading ? t('Reading…') : t('Add')}</small>
+              </button>
             </div>
+            <input
+              type="file"
+              id="category-icon-input"
+              ref={iconInput}
+              accept={ICON_ACCEPT}
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) uploadIcon(file);
+                event.target.value = '';
+              }}
+            />
+            {isImageIcon(icon) && (
+              <button
+                className="btn ghost category-picker-toggle"
+                type="button"
+                onClick={() => setIcon(DEFAULT_CATEGORY_ICON)}
+              >
+                {t('Remove custom icon')}
+              </button>
+            )}
             {availableIcons.length > CATEGORY_ICON_PREVIEW_COUNT && (
               <button
                 className="btn ghost category-picker-toggle"
@@ -469,7 +539,7 @@ function CategoryModal({ category }: { category: Category | null }) {
                 aria-controls="category-picker"
                 onClick={() => setShowAllIcons((value) => !value)}
               >
-                {showAllIcons ? 'Show fewer' : `See all categories (${availableIcons.length})`}
+                {showAllIcons ? t('Show fewer') : t('See all categories ({count})', { count: availableIcons.length })}
               </button>
             )}
           </div>
@@ -510,30 +580,31 @@ function TransactionModal({
   const [busy, setBusy] = useState(false);
 
   const walletOptions = wallets.length
-    ? [{ value: '', label: 'Choose a wallet' }].concat(
+    ? [{ value: '', label: t('Choose a wallet') }].concat(
         wallets.map((wallet) => ({ value: wallet.id, label: wallet.name + ' (' + wallet.currency + ')' }))
       )
-    : [{ value: '', label: 'No wallets yet' }];
+    : [{ value: '', label: t('No wallets yet') }];
 
   const typeCategories = categoriesByType(activeCategories(categories), type);
   const categoryOptions = typeCategories.length
-    ? [{ value: '', label: 'Choose a category' }].concat(
+    ? [{ value: '', label: t('Choose a category') }].concat(
         typeCategories.map((category) => ({
           value: category.id,
-          label: category.icon + ' ' + category.name
+          label: category.name,
+          icon: category.icon
         }))
       )
-    : [{ value: '', label: 'No ' + (type === 'income' ? 'income' : 'expense') + ' categories yet' }];
+    : [{ value: '', label: type === 'income' ? t('No income categories yet') : t('No expense categories yet') }];
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const value = readDecimal(amount);
     const next: Errors = {};
-    if (!validAmount(value, currency) || value <= 0) next.amount = `Enter an amount greater than 0 (max ${fractionDigits(currency)} decimal places).`;
-    if (!validRate(exchangeRate)) next.rate = 'This wallet has no valid exchange rate. Fix it in wallet settings first.';
-    if (!walletId) next.walletId = 'Choose a wallet first.';
-    if (!categoryId) next.categoryId = 'Choose a category first.';
-    if (!date) next.date = 'Pick a date.';
+    if (!validAmount(value, currency) || value <= 0) next.amount = t('Enter an amount greater than 0 (max {digits} decimal places).', { digits: fractionDigits(currency) });
+    if (!validRate(exchangeRate)) next.rate = t('This wallet has no valid exchange rate. Fix it in wallet settings first.');
+    if (!walletId) next.walletId = t('Choose a wallet first.');
+    if (!categoryId) next.categoryId = t('Choose a category first.');
+    if (!date) next.date = t('Pick a date.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -542,14 +613,16 @@ function TransactionModal({
       const payload = { walletId, categoryId, type, amount: value, note, date, currency, exchangeRate };
       if (transaction) {
         await editTransaction(transaction.id, payload);
-        toast('Transaction updated');
+        toast(t('Transaction updated'));
       } else {
         await addTransaction(payload);
-        toast((type === 'income' ? 'Income' : 'Expense') + ' of ' + formatCurrency(value, currency) + ' saved');
+        toast(type === 'income'
+          ? t('Income of {amount} saved', { amount: formatCurrency(value, currency) })
+          : t('Expense of {amount} saved', { amount: formatCurrency(value, currency) }));
       }
       closeModal();
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not save transaction.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not save transaction.'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -563,9 +636,9 @@ function TransactionModal({
       head={
         <ModalHead
           id="transaction-modal-title"
-          title={transaction ? 'Edit transaction' : 'New transaction'}
-          desc="Record money coming in or going out."
-          closeLabel="Close transaction dialog"
+          title={transaction ? t('Edit transaction') : t('New transaction')}
+          desc={t('Record money coming in or going out.')}
+          closeLabel={t('Close transaction dialog')}
           onClose={closeModal}
         />
       }
@@ -577,26 +650,26 @@ function TransactionModal({
               type="button"
               onClick={() => remove(transaction.id)}
             >
-              Delete
+              {t('Delete')}
             </button>
           )}
-          <button className="btn secondary" type="button" onClick={closeModal}>Cancel</button>
-          <button className="btn primary" type="submit" form="transaction-form" disabled={busy}>Save</button>
+          <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
+          <button className="btn primary" type="submit" form="transaction-form" disabled={busy}>{t('Save')}</button>
         </div>
       }
     >
       <form id="transaction-form" className="transaction-form" onSubmit={submit} noValidate>
         <Segmented
           id="transaction-type"
-          label="Transaction type"
+          label={t('Transaction type')}
           block
           value={type}
           onChange={(value) => { setType(value); setCategoryId(''); clearError('categoryId'); }}
-          options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]}
+          options={[{ value: 'expense', label: t('Expense') }, { value: 'income', label: t('Income') }]}
         />
         <div style={{ height: 16 }} />
         <div className="form-grid">
-          <Field name="amount" label={`Amount (${currency})`} error={errors.amount} htmlFor="transaction-amount">
+          <Field name="amount" label={t('Amount ({currency})', { currency })} error={errors.amount} htmlFor="transaction-amount">
             <input
               id="transaction-amount"
               name="amount"
@@ -608,23 +681,23 @@ function TransactionModal({
             />
           </Field>
 
-          {currency !== 'IDR' && <Field label="Amount (IDR estimate)" error={errors.rate} full htmlFor="transaction-idr-estimate">
+          {currency !== 'IDR' && <Field label={t('Amount (IDR estimate)')} error={errors.rate} full htmlFor="transaction-idr-estimate">
             <input
               id="transaction-idr-estimate"
               disabled
               value={validRate(exchangeRate) && Number.isFinite(readDecimal(amount)) && readDecimal(amount) > 0 ? formatCurrency(readDecimal(amount) * exchangeRate) : ''}
-              placeholder="No rate set"
+              placeholder={t('No rate set')}
             />
-            <small className="hint-info">1 {currency} = {validRate(exchangeRate) ? exchangeRate : '…'} IDR, from this wallet's settings.</small>
+            <small className="hint-info">{t('1 {currency} = {rate} IDR, from this wallet\'s settings.', { currency, rate: validRate(exchangeRate) ? exchangeRate : '…' })}</small>
           </Field>}
-          <Field name="date" label="Date" error={errors.date} htmlFor="transaction-date">
+          <Field name="date" label={t('Date')} error={errors.date} htmlFor="transaction-date">
             <SingleDatePicker value={date} onChange={(value) => { setDate(value); clearError('date'); }} />
           </Field>
 
-          <Field name="walletId" label="Wallet" error={errors.walletId} htmlFor="transaction-wallet">
+          <Field name="walletId" label={t('Wallet')} error={errors.walletId} htmlFor="transaction-wallet">
             <Dropdown
               id="transaction-wallet"
-              label="Choose a wallet"
+              label={t('Choose a wallet')}
               value={walletId}
               onChange={(value) => {
                 setWalletId(value);
@@ -634,10 +707,10 @@ function TransactionModal({
             />
           </Field>
 
-          <Field name="categoryId" label="Category" error={errors.categoryId} htmlFor="transaction-category">
+          <Field name="categoryId" label={t('Category')} error={errors.categoryId} htmlFor="transaction-category">
             <Dropdown
               id="transaction-category"
-              label="Choose a category"
+              label={t('Choose a category')}
               value={categoryId}
               onChange={(value) => { setCategoryId(value); clearError('categoryId'); }}
               options={categoryOptions}
@@ -645,11 +718,11 @@ function TransactionModal({
           </Field>
 
           <div className="input full">
-            <label htmlFor="transaction-note">Note <span className="muted">(optional)</span></label>
+            <label htmlFor="transaction-note">{t('Note')} <span className="muted">{t('(optional)')}</span></label>
             <textarea
               id="transaction-note"
               name="note"
-              placeholder="e.g. Lunch with the team"
+              placeholder={t('e.g. Lunch with the team')}
               value={note}
               onChange={(event) => setNote(event.target.value)}
             />
@@ -684,22 +757,22 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
     ? (fromCurrency === toCurrency ? fromAmount : roundToCurrency(fromAmount * fromWallet.exchangeRate / toWallet.exchangeRate, toCurrency))
     : 0;
 
-  const fromOptions = [{ value: '', label: 'Choose a wallet' }].concat(
+  const fromOptions = [{ value: '', label: t('Choose a wallet') }].concat(
     wallets.map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${wallet.currency})` }))
   );
-  const toOptions = [{ value: '', label: 'Choose a wallet' }].concat(
+  const toOptions = [{ value: '', label: t('Choose a wallet') }].concat(
     wallets.filter((wallet) => wallet.id !== fromId).map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${wallet.currency})` }))
   );
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const next: Errors = {};
-    if (!fromId) next.fromId = 'Choose a wallet to send from.';
-    if (!toId) next.toId = 'Choose a wallet to send to.';
-    if (fromId && toId && fromId === toId) next.toId = 'Choose a different wallet.';
-    if (!amountValid) next.amount = `Enter an amount greater than 0 (max ${fractionDigits(fromCurrency)} decimal places).`;
-    else if (fromWallet && toWallet && toAmount <= 0) next.amount = `Amount is too small to convert to ${toCurrency}.`;
-    if (!date) next.date = 'Pick a date.';
+    if (!fromId) next.fromId = t('Choose a wallet to send from.');
+    if (!toId) next.toId = t('Choose a wallet to send to.');
+    if (fromId && toId && fromId === toId) next.toId = t('Choose a different wallet.');
+    if (!amountValid) next.amount = t('Enter an amount greater than 0 (max {digits} decimal places).', { digits: fractionDigits(fromCurrency) });
+    else if (fromWallet && toWallet && toAmount <= 0) next.amount = t('Amount is too small to convert to {currency}.', { currency: toCurrency });
+    if (!date) next.date = t('Pick a date.');
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -710,10 +783,10 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
         toWalletId: toId, toCurrency, toRate: toWallet!.exchangeRate, toAmount,
         note, date
       });
-      toast(`Transferred ${formatCurrency(fromAmount, fromCurrency)} to ${toWallet!.name}`);
+      toast(t('Transferred {amount} to {wallet}', { amount: formatCurrency(fromAmount, fromCurrency), wallet: toWallet!.name }));
       closeModal();
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not complete the transfer.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not complete the transfer.'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -727,34 +800,34 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
       head={
         <ModalHead
           id="transfer-modal-title"
-          title="Transfer money"
-          desc="Move money between your own wallets. Doesn't count as income or expense."
-          closeLabel="Close transfer dialog"
+          title={t('Transfer money')}
+          desc={t('Move money between your own wallets. Doesn\'t count as income or expense.')}
+          closeLabel={t('Close transfer dialog')}
           onClose={closeModal}
         />
       }
       foot={
         <div className="modal-foot">
-          <button className="btn secondary" type="button" onClick={closeModal}>Cancel</button>
-          <button className="btn primary" type="submit" form="transfer-form" disabled={busy}>{busy ? 'Transferring…' : 'Transfer'}</button>
+          <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
+          <button className="btn primary" type="submit" form="transfer-form" disabled={busy}>{busy ? t('Transferring…') : t('Transfer')}</button>
         </div>
       }
     >
       <form id="transfer-form" onSubmit={submit} noValidate>
         <div className="form-grid">
-          <Field name="fromId" label="From wallet" error={errors.fromId} full htmlFor="transfer-from">
+          <Field name="fromId" label={t('From wallet')} error={errors.fromId} full htmlFor="transfer-from">
             <Dropdown
               id="transfer-from"
-              label="From wallet"
+              label={t('From wallet')}
               value={fromId}
               options={fromOptions}
               onChange={(value) => { setFromId(value); if (value === toId) setToId(''); clearError('fromId', 'toId'); }}
             />
           </Field>
-          <Field name="toId" label="To wallet" error={errors.toId} full htmlFor="transfer-to">
+          <Field name="toId" label={t('To wallet')} error={errors.toId} full htmlFor="transfer-to">
             <Dropdown
               id="transfer-to"
-              label="To wallet"
+              label={t('To wallet')}
               value={toId}
               options={toOptions}
               onChange={(value) => { setToId(value); clearError('toId'); }}
@@ -769,21 +842,21 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
               onChange={(event) => { setAmount(event.target.value); clearError('amount'); }}
             />
           </Field>
-          <Field name="date" label="Date" error={errors.date} htmlFor="transfer-date">
+          <Field name="date" label={t('Date')} error={errors.date} htmlFor="transfer-date">
             <SingleDatePicker id="transfer-date-picker" triggerId="transfer-date" value={date} onChange={(value) => { setDate(value); clearError('date'); }} />
           </Field>
           {fromCurrency !== toCurrency && toWallet && (
-            <Field label="They'll receive" full>
-              <input disabled value={amountValid ? formatCurrency(toAmount, toCurrency) : ''} placeholder="Enter an amount first" />
-              <small className="hint-info">Converted using each wallet's own exchange rate.</small>
+            <Field label={t('They\'ll receive')} full>
+              <input disabled value={amountValid ? formatCurrency(toAmount, toCurrency) : ''} placeholder={t('Enter an amount first')} />
+              <small className="hint-info">{t('Converted using each wallet\'s own exchange rate.')}</small>
             </Field>
           )}
-          <Field name="note" label="Note (optional)" full htmlFor="transfer-note">
+          <Field name="note" label={t('Note (optional)')} full htmlFor="transfer-note">
             <input
               id="transfer-note"
               type="text"
               name="note"
-              placeholder="e.g. Moving savings"
+              placeholder={t('e.g. Moving savings')}
               value={note}
               onChange={(event) => setNote(event.target.value)}
             />
@@ -798,7 +871,7 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
    PROFILE
    ============================================================ */
 const PHOTO_SIZE = 256;
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 
 function ProfileModal() {
   const { profile, saveProfile } = useAppData();
@@ -808,47 +881,33 @@ function ProfileModal() {
   const { errors, setErrors, clearError } = useFormErrors();
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
-  /** Crop tengah + resize ke kotak PHOTO_SIZE supaya avatar selalu penuh. */
+  /** Validasi ukuran, lalu buka langkah atur posisi (geser + zoom). */
   function readPhoto(file: File) {
     if (file.size > MAX_PHOTO_BYTES) {
-      toast('That photo is larger than 5 MB', { variant: 'error' });
+      toast(t('That photo is larger than 2 MB'), { variant: 'error' });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const image = new Image();
-      image.onload = () => {
-        const side = Math.min(image.width, image.height);
-        const canvas = document.createElement('canvas');
-        canvas.width = PHOTO_SIZE;
-        canvas.height = PHOTO_SIZE;
-        canvas.getContext('2d')?.drawImage(
-          image,
-          (image.width - side) / 2, (image.height - side) / 2, side, side,
-          0, 0, PHOTO_SIZE, PHOTO_SIZE
-        );
-        setPhoto(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      image.onerror = () => toast('We could not read that image', { variant: 'error' });
-      image.src = String(reader.result);
-    };
-    reader.onerror = () => toast('We could not read that file', { variant: 'error' });
-    reader.readAsDataURL(file);
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast(t('Use a JPG, PNG or WebP photo'), { variant: 'error' });
+      return;
+    }
+    setCropFile(file);
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) { setErrors({ name: 'Please enter your name.' }); return; }
+    if (!trimmed) { setErrors({ name: t('Please enter your name.') }); return; }
     setErrors({});
     setBusy(true);
     try {
       await saveProfile(trimmed, photo);
       closeModal();
-      toast('Profile updated');
+      toast(t('Profile updated'));
     } catch (reason) {
-      toast(reason instanceof Error ? reason.message : 'Could not update profile.', { variant: 'error' });
+      toast(reason instanceof Error ? reason.message : t('Could not update profile.'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -862,20 +921,35 @@ function ProfileModal() {
       head={
         <ModalHead
           id="profile-modal-title"
-          title="Edit profile"
-          desc="Your name and photo appear across the app."
-          closeLabel="Close profile dialog"
+          title={t('Edit profile')}
+          desc={t('Your name and photo appear across the app.')}
+          closeLabel={t('Close profile dialog')}
           onClose={closeModal}
         />
       }
       foot={
         <div className="modal-foot">
-          <button className="btn secondary" type="button" onClick={closeModal}>Cancel</button>
-          <button className="btn primary" type="submit" form="profile-form" disabled={busy}>Save</button>
+          <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
+          <button className="btn primary" type="submit" form="profile-form" disabled={busy}>{t('Save')}</button>
         </div>
       }
     >
       <form id="profile-form" onSubmit={submit} noValidate>
+        {cropFile && (
+          <ImageCropper
+            file={cropFile}
+            outputSize={PHOTO_SIZE}
+            shape="circle"
+            title={t('Adjust photo')}
+            confirmLabel={t('Use photo')}
+            onCancel={() => setCropFile(null)}
+            onError={(message) => toast(message, { variant: 'error' })}
+            onConfirm={(canvas) => {
+              setPhoto(canvas.toDataURL('image/jpeg', 0.88));
+              setCropFile(null);
+            }}
+          />
+        )}
         <div className="profile-photo-field">
           <Avatar
             id="profile-photo-preview"
@@ -886,13 +960,13 @@ function ProfileModal() {
           <div className="profile-photo-actions">
             <div className="controls">
               <button className="btn secondary" type="button" onClick={() => fileInput.current?.click()}>
-                <Icon name="camera" /> Upload photo
+                <Icon name="camera" /> {t('Upload photo')}
               </button>
               {photo && (
-                <button className="btn ghost" type="button" onClick={() => setPhoto('')}>Remove</button>
+                <button className="btn ghost" type="button" onClick={() => setPhoto('')}>{t('Remove')}</button>
               )}
             </div>
-            <small>JPG or PNG, up to 5 MB. We resize it for you.</small>
+            <small>{t('JPG or PNG, up to 2 MB. We resize it for you.')}</small>
           </div>
         </div>
         <input
@@ -907,13 +981,13 @@ function ProfileModal() {
             event.target.value = '';
           }}
         />
-        <Field name="name" label="Name" error={errors.name} full htmlFor="profile-name-input">
+        <Field name="name" label={t('Name')} error={errors.name} full htmlFor="profile-name-input">
           <input
             id="profile-name-input"
             name="name"
             type="text"
             maxLength={40}
-            placeholder="e.g. Alex"
+            placeholder={t('e.g. Alex')}
             autoComplete="name"
             value={name}
             onChange={(event) => { setName(event.target.value); clearError('name'); }}
@@ -939,22 +1013,22 @@ function ConfirmModal() {
       head={
         <ModalHead
           id="confirm-title"
-          title={confirmState.title || 'Are you sure?'}
-          desc={confirmState.message || 'This cannot be undone.'}
-          closeLabel="Close confirmation"
+          title={confirmState.title || t('Are you sure?')}
+          desc={confirmState.message || t('This cannot be undone.')}
+          closeLabel={t('Close confirmation')}
           onClose={closeConfirm}
         />
       }
       foot={
         <div className="modal-foot">
-          <button className="btn secondary" type="button" onClick={closeConfirm}>Cancel</button>
+          <button className="btn secondary" type="button" onClick={closeConfirm}>{t('Cancel')}</button>
           <button
             className="btn danger-btn"
             type="button"
             id="confirm-accept"
             onClick={() => { const action = confirmState.onConfirm; closeConfirm(); action(); }}
           >
-            {confirmState.confirmLabel || 'Delete'}
+            {confirmState.confirmLabel || t('Delete')}
           </button>
         </div>
       }
@@ -975,18 +1049,20 @@ export function useDeleteWallet() {
     const count = transactions.filter((item) => item.walletId === id).length;
 
     confirm({
-      title: 'Delete ' + wallet.name + '?',
+      title: t('Delete {name}?', { name: wallet.name }),
       message: count
-        ? 'This wallet still has ' + count + ' transaction' + (count > 1 ? 's' : '') + '. Deleting it removes them too.'
-        : 'This cannot be undone.',
-      confirmLabel: count ? 'Delete wallet & transactions' : 'Delete wallet',
+        ? tp(count, 'This wallet still has {count} transaction. Deleting it removes them too.', 'This wallet still has {count} transactions. Deleting it removes them too.')
+        : t('This cannot be undone.'),
+      confirmLabel: count ? t('Delete wallet & transactions') : t('Delete wallet'),
       onConfirm: async () => {
         try {
           await removeWallet(id);
           closeModal();
-          toast(wallet.name + ' deleted' + (count ? ' with ' + count + ' transaction' + (count > 1 ? 's' : '') : ''));
+          toast(count
+            ? tp(count, '{name} deleted with {count} transaction', '{name} deleted with {count} transactions', { name: wallet.name })
+            : t('{name} deleted', { name: wallet.name }));
         } catch (reason) {
-          toast(reason instanceof Error ? reason.message : 'Could not delete wallet.', { variant: 'error' });
+          toast(reason instanceof Error ? reason.message : t('Could not delete wallet.'), { variant: 'error' });
         }
       }
     });
@@ -1003,23 +1079,24 @@ export function useDeleteCategory() {
     const count = categoryTransactionCount(transactions, id);
 
     confirm({
-      title: 'Delete ' + category.name + '?',
+      title: t('Delete {name}?', { name: category.name }),
       message: count
-        ? count + ' transaction' + (count > 1 ? 's use' : ' uses') +
-          ' this category. We will archive it instead, so your history keeps its name and icon. You can restore it any time.'
-        : 'This cannot be undone.',
-      confirmLabel: count ? 'Archive category' : 'Delete category',
+        ? tp(count,
+            '{count} transaction uses this category. We will archive it instead, so your history keeps its name and icon. You can restore it any time.',
+            '{count} transactions use this category. We will archive it instead, so your history keeps its name and icon. You can restore it any time.')
+        : t('This cannot be undone.'),
+      confirmLabel: count ? t('Archive category') : t('Delete category'),
       onConfirm: async () => {
         try {
           if (count) {
             await archiveCategory(id);
-            toast(category.name + ' moved to archive');
+            toast(t('{name} moved to archive', { name: category.name }));
           } else {
             await removeCategory(id);
-            toast(category.name + ' deleted');
+            toast(t('{name} deleted', { name: category.name }));
           }
         } catch (reason) {
-          toast(reason instanceof Error ? reason.message : 'Could not delete category.', { variant: 'error' });
+          toast(reason instanceof Error ? reason.message : t('Could not delete category.'), { variant: 'error' });
         }
       }
     });
@@ -1036,17 +1113,20 @@ export function useDeleteTransaction() {
     const label = transaction.note || resolveCategory(categories, transaction.categoryId).name;
 
     confirm({
-      title: 'Delete this transaction?',
-      message: label + ' · ' + formatSigned(transaction.amount, transaction.type, transaction.currency) +
-        ' on ' + formatDateID(transaction.date) + '. The wallet balance will be recalculated.',
-      confirmLabel: 'Delete transaction',
+      title: t('Delete this transaction?'),
+      message: t('{label} · {amount} on {date}. The wallet balance will be recalculated.', {
+        label,
+        amount: formatSigned(transaction.amount, transaction.type, transaction.currency),
+        date: formatDateID(transaction.date)
+      }),
+      confirmLabel: t('Delete transaction'),
       onConfirm: async () => {
         try {
           await removeTransaction(id);
           closeModal();
-          toast('Transaction deleted');
+          toast(t('Transaction deleted'));
         } catch (reason) {
-          toast(reason instanceof Error ? reason.message : 'Could not delete transaction.', { variant: 'error' });
+          toast(reason instanceof Error ? reason.message : t('Could not delete transaction.'), { variant: 'error' });
         }
       }
     });
@@ -1066,22 +1146,25 @@ export function useDeleteTransfer() {
     const out = legs.find((item) => item.type === 'expense');
     const into = legs.find((item) => item.type === 'income');
     const nameOf = (id: string | null | undefined) =>
-      wallets.find((wallet) => wallet.id === id)?.name || 'Deleted wallet';
+      wallets.find((wallet) => wallet.id === id)?.name || t('Deleted wallet');
     const amount = out || into!;
 
     confirm({
-      title: 'Delete this transfer?',
-      message: `${nameOf(out?.walletId)} → ${nameOf(into?.walletId)} · ` +
-        `${formatCurrency(amount.amount, amount.currency)} on ${formatDateID(amount.date)}. ` +
-        'Both sides are removed and the wallet balances are recalculated.',
-      confirmLabel: 'Delete transfer',
+      title: t('Delete this transfer?'),
+      message: t('{from} → {to} · {amount} on {date}. Both sides are removed and the wallet balances are recalculated.', {
+        from: nameOf(out?.walletId),
+        to: nameOf(into?.walletId),
+        amount: formatCurrency(amount.amount, amount.currency),
+        date: formatDateID(amount.date)
+      }),
+      confirmLabel: t('Delete transfer'),
       onConfirm: async () => {
         try {
           await removeTransfer(pairId);
           closeModal();
-          toast('Transfer deleted');
+          toast(t('Transfer deleted'));
         } catch (reason) {
-          toast(reason instanceof Error ? reason.message : 'Could not delete transfer.', { variant: 'error' });
+          toast(reason instanceof Error ? reason.message : t('Could not delete transfer.'), { variant: 'error' });
         }
       }
     });
@@ -1098,11 +1181,11 @@ export function ModalHost() {
   // Sama seperti app vanilla: transaksi butuh minimal satu wallet.
   useEffect(() => {
     if (modal?.kind === 'transaction' && !modal.id && !wallets.length) {
-      toast('Add a wallet before recording transactions', { variant: 'error' });
+      toast(t('Add a wallet before recording transactions'), { variant: 'error' });
       openModal({ kind: 'wallet' });
     }
     if (modal?.kind === 'transfer' && wallets.length < 2) {
-      toast('Add a second wallet before transferring money', { variant: 'error' });
+      toast(t('Add a second wallet before transferring money'), { variant: 'error' });
       openModal({ kind: 'wallet' });
     }
   }, [modal, wallets.length, openModal, toast]);

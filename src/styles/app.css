@@ -399,3 +399,34 @@
 .transaction-form > .segmented { margin-top: 16px }
 .change { display: inline-flex; align-items: center; gap: 5px }
 .change .svg-icon { width: 14px; height: 14px; stroke-width: 2.2 }
+.icon-img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.icon-inline { display: inline-block; width: 1.3em; height: 1.3em; border-radius: 6px; object-fit: cover; vertical-align: -.3em; }
+
+/* ---------- Image cropper (foto profil & ikon kategori) ---------- */
+.cropper-modal { width: min(360px, 100%); }
+.cropper { display: grid; gap: 16px; }
+.cropper-stage { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 20px; background: #161a16; cursor: grab; touch-action: none; user-select: none; }
+.cropper-stage.dragging { cursor: grabbing; }
+.cropper-stage img { position: absolute; max-width: none; pointer-events: none; user-select: none; }
+/* Bingkai crop: lubang + bayangan gelap di luarnya (di-clip oleh overflow stage). */
+.cropper-hole {
+  position: absolute; inset: 12%; border-radius: 22%; pointer-events: none;
+  border: 2px solid rgba(255, 255, 255, .95);
+  box-shadow: 0 0 0 999px rgba(12, 16, 12, .62);
+}
+.cropper-stage.circle .cropper-hole { border-radius: 50%; }
+/* Garis bantu sepertiga: muncul saat gambar digeser. */
+.cropper-hole::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; transition: opacity .15s;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255,255,255,.45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px));
+}
+.cropper-stage.dragging .cropper-hole::after { opacity: 1; }
+.cropper-zoom { display: flex; align-items: center; gap: 12px; }
+.cropper-zoom input { flex: 1; min-width: 0; accent-color: var(--green); }
+.cropper-step { display: grid; place-items: center; flex: 0 0 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--ink); cursor: pointer; }
+.cropper-step .svg-icon { width: 16px; height: 16px; }
+.cropper-step:disabled { opacity: .4; cursor: not-allowed; }
+.cropper-modal .modal-foot { display: flex; gap: 10px; }
+.cropper-modal .modal-foot .btn { flex: 1; }

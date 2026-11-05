@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Currency, Category, CategoryPayload, Profile, Transaction, TransactionPayload, TransferPayload, Wallet, WalletPayload } from '../types';
 import { useAuth } from './AuthContext';
 import * as db from '../lib/db';
+import { t } from '../i18n';
 
 interface AppDataValue {
   loading: boolean;
@@ -52,7 +53,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const next = await db.loadAppData(userId);
       if (request === requestId.current) setData(next);
     } catch (reason) {
-      if (request === requestId.current) setError(reason instanceof Error ? reason.message : 'Could not load app data.');
+      if (request === requestId.current) setError(reason instanceof Error ? reason.message : t('Could not load app data.'));
       throw reason;
     } finally {
       if (request === requestId.current) setLoading(false);
@@ -68,12 +69,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const run = useCallback(async (action: () => Promise<void>) => {
-    if (!userId) throw new Error('Please log in again.');
+    if (!userId) throw new Error(t('Please log in again.'));
     await action();
     try {
       await refresh();
     } catch {
-      throw new Error('Changes were saved, but the latest data could not be loaded. Refresh the page before trying again.');
+      throw new Error(t('Changes were saved, but the latest data could not be loaded. Refresh the page before trying again.'));
     }
   }, [refresh, userId]);
 

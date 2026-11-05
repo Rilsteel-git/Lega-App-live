@@ -94,7 +94,13 @@ export interface TransactionFilters {
   to: string;
 }
 
-export type StatsMode = 'weekly' | 'monthly';
+export type StatsMode = 'weekly' | 'monthly' | 'custom';
+
+/** Rentang tanggal bebas (ISO yyyy-mm-dd) untuk mode 'custom'. */
+export interface CustomRange {
+  from: string;
+  to: string;
+}
 
 export interface Period {
   mode: StatsMode;

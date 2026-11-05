@@ -11,12 +11,13 @@ import { MONTHS } from '../lib/format';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/IconSprite';
 import { navigate } from '../components/AppShell';
+import { t, tp } from '../i18n';
 
 /** "Tracking since March 2026" — dihitung dari saat profil dibuat. */
 function memberSince(iso?: string) {
   const date = iso ? new Date(iso) : null;
-  if (!date || isNaN(date.getTime())) return 'Your money, tracked in one place';
-  return 'Tracking since ' + MONTHS[date.getMonth()] + ' ' + date.getFullYear();
+  if (!date || isNaN(date.getTime())) return t('Your money, tracked in one place');
+  return t('Tracking since {month} {year}', { month: MONTHS[date.getMonth()], year: date.getFullYear() });
 }
 
 function MenuRow({
@@ -52,24 +53,24 @@ export function ProfilePage() {
 
   function logout() {
     confirm({
-      title: 'Log out?',
-      message: 'Your session will end. Wallets, categories, and transactions stay in your account.',
-      confirmLabel: 'Log out',
-      onConfirm: () => { void signOut().catch(() => toast('Could not log out. Please try again.', { variant: 'error' })); }
+      title: t('Log out?'),
+      message: t('Your session will end. Wallets, categories, and transactions stay in your account.'),
+      confirmLabel: t('Log out'),
+      onConfirm: () => { void signOut().catch(() => toast(t('Could not log out. Please try again.'), { variant: 'error' })); }
     });
   }
 
   function deleteAccountFlow() {
     confirm({
-      title: 'Delete your account?',
-      message: 'This permanently deletes your profile, wallets, categories, and every transaction. This cannot be undone.',
-      confirmLabel: 'Delete account',
+      title: t('Delete your account?'),
+      message: t('This permanently deletes your profile, wallets, categories, and every transaction. This cannot be undone.'),
+      confirmLabel: t('Delete account'),
       onConfirm: () => {
         void (async () => {
           try {
             await deleteAccount();
           } catch {
-            toast('Could not delete your account. Please try again.', { variant: 'error' });
+            toast(t('Could not delete your account. Please try again.'), { variant: 'error' });
             return;
           }
           // The account is already gone server-side at this point; if
@@ -86,14 +87,14 @@ export function ProfilePage() {
   }
 
   return (
-    <section className="page active" id="page-profile" aria-label="Profile">
+    <section className="page active" id="page-profile" aria-label={t('Profile')}>
       <div className="grid-2">
         <article className="card">
           <div className="profile-summary">
             <button
               className="profile-photo"
               type="button"
-              aria-label="Change profile photo"
+              aria-label={t('Change profile photo')}
               onClick={() => openModal({ kind: 'profile' })}
             >
               <Avatar
@@ -106,68 +107,68 @@ export function ProfilePage() {
             </button>
             <div className="profile-identity">
               <strong id="profile-name" className={name ? undefined : 'is-placeholder'}>
-                {name || 'Add your name'}
+                {name || t('Add your name')}
               </strong>
               <small id="profile-meta">{memberSince(profile?.createdAt)}</small>
             </div>
             <button
               className="icon-btn"
               type="button"
-              aria-label="Edit profile"
-              title="Edit profile"
+              aria-label={t('Edit profile')}
+              title={t('Edit profile')}
               onClick={() => openModal({ kind: 'profile' })}
             >
               <Icon name="edit" />
             </button>
           </div>
           <div className="profile-stats">
-            <div className="profile-stat"><small>Wallets</small><strong className="num" id="profile-wallets">{wallets.length}</strong></div>
-            <div className="profile-stat"><small>Transactions</small><strong className="num" id="profile-tx">{transactions.length}</strong></div>
-            <div className="profile-stat"><small>Categories</small><strong className="num" id="profile-categories">{categoryCount}</strong></div>
+            <div className="profile-stat"><small>{t('Wallets')}</small><strong className="num" id="profile-wallets">{wallets.length}</strong></div>
+            <div className="profile-stat"><small>{t('Transactions')}</small><strong className="num" id="profile-tx">{transactions.length}</strong></div>
+            <div className="profile-stat"><small>{t('Categories')}</small><strong className="num" id="profile-categories">{categoryCount}</strong></div>
           </div>
         </article>
 
         <article className="card manage-account-card">
           <div className="card-head">
-            <div><h2>Manage account</h2><p>Your profile, money sources, and app data</p></div>
+            <div><h2>{t('Manage account')}</h2><p>{t('Your profile, money sources, and app data')}</p></div>
           </div>
           <div className="menu-list">
             <MenuRow
               icon="user"
-              title="Edit profile"
-              meta="Change your name and photo"
+              title={t('Edit profile')}
+              meta={t('Change your name and photo')}
               onClick={() => openModal({ kind: 'profile' })}
             />
             <MenuRow
               icon="wallet"
-              title="Wallets"
-              meta={wallets.length ? `${wallets.length} wallet${wallets.length > 1 ? 's' : ''}` : 'Nothing added yet'}
+              title={t('Wallets')}
+              meta={wallets.length ? tp(wallets.length, '{count} wallet', '{count} wallets') : t('Nothing added yet')}
               onClick={() => navigate('wallets')}
             />
             <MenuRow
               icon="category"
-              title="Categories"
-              meta={`${categoryCount} categor${categoryCount === 1 ? 'y' : 'ies'}`}
+              title={t('Categories')}
+              meta={tp(categoryCount, '{count} category', '{count} categories')}
               onClick={() => navigate('categories')}
             />
 
             <MenuRow
               icon="settings"
-              title="Settings"
-              meta={`Report currency · ${profile?.reportCurrency || 'IDR'}`}
+              title={t('Settings')}
+              meta={t('Language and report currency · {currency}', { currency: profile?.reportCurrency || 'IDR' })}
               onClick={() => navigate('settings')}
             />
             <MenuRow
               icon="logout"
-              title="Log out"
-              meta="End this session"
+              title={t('Log out')}
+              meta={t('End this session')}
               danger
               onClick={logout}
             />
             <MenuRow
               icon="trash"
-              title="Delete account"
-              meta="Permanently erase your profile and data"
+              title={t('Delete account')}
+              meta={t('Permanently erase your profile and data')}
               danger
               onClick={deleteAccountFlow}
             />
