@@ -1,27 +1,43 @@
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
-const root = process.cwd();
-const logoPath = path.join(root, 'public', 'mani-app-logo.png');
-const iconBackground = '#f4f6f4';
+/* Regenerates every Android/iOS launcher icon and splash image from the Lega
+ * brand SVGs in public/brand/. Run with: npm run generate:native-assets */
 
-async function createCanvasWithLogo(width, height, logoScale, background, outputPath) {
-  const logoSize = Math.round(Math.min(width, height) * logoScale);
-  const logo = await sharp(logoPath)
-    .resize(logoSize, logoSize, { fit: 'contain' })
+const root = process.cwd();
+const brandDir = path.join(root, 'public', 'brand');
+
+/** Lega brand green. Mirrors --green in src/styles/design-system.css. */
+const BRAND_GREEN = '#0B7A43';
+/** App canvas, used behind the legacy splash on the web/app window. */
+const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
+
+/** Rasterises a brand SVG. The high density keeps edges crisp before resize. */
+async function renderSvg(name, width, height = width) {
+  const svg = await readFile(path.join(brandDir, name));
+  return sharp(svg, { density: 1200 })
+    .resize(width, height, { fit: 'contain', background: TRANSPARENT })
     .png()
     .toBuffer();
+}
 
-  await sharp({
-    create: {
-      width,
-      height,
-      channels: 4,
-      background
-    }
-  })
-    .composite([{ input: logo, gravity: 'centre' }])
+/** Centres the white Lega mark on a solid-colour canvas. */
+async function createCanvasWithMark(width, height, markScale, background, outputPath) {
+  const markSize = Math.round(Math.min(width, height) * markScale);
+  const mark = await renderSvg('lega-mark-white.svg', markSize);
+
+  await sharp({ create: { width, height, channels: 4, background } })
+    .composite([{ input: mark, gravity: 'centre' }])
+    .png()
+    .toFile(outputPath);
+}
+
+/** Pads a layer onto a transparent square — used for adaptive-icon layers. */
+async function createTransparentLayer(name, canvasSize, outputPath) {
+  const layer = await renderSvg(name, canvasSize);
+  await sharp({ create: { width: canvasSize, height: canvasSize, channels: 4, background: TRANSPARENT } })
+    .composite([{ input: layer, gravity: 'centre' }])
     .png()
     .toFile(outputPath);
 }
@@ -37,56 +53,32 @@ async function generateAndroidIcons() {
 
   for (const [density, size] of densities) {
     const directory = path.join(root, 'android', 'app', 'src', 'main', 'res', `mipmap-${density}`);
-    await createCanvasWithLogo(size, size, 0.82, iconBackground, path.join(directory, 'ic_launcher.png'));
-    await createCanvasWithLogo(size, size, 0.82, iconBackground, path.join(directory, 'ic_launcher_round.png'));
+    await mkdir(directory, { recursive: true });
 
-    const foregroundSize = Math.round(size * 2.25);
-    const logoSize = Math.round(foregroundSize * 0.64);
-    const foreground = await sharp(logoPath)
-      .resize(logoSize, logoSize, { fit: 'contain' })
-      .png()
-      .toBuffer();
-    await sharp({
-      create: {
-        width: foregroundSize,
-        height: foregroundSize,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      }
-    })
-      .composite([{ input: foreground, gravity: 'centre' }])
-      .png()
-      .toFile(path.join(directory, 'ic_launcher_foreground.png'));
+    // Legacy launcher icons: the full rounded-square app icon.
+    const icon = await renderSvg('lega-app-icon.svg', size);
+    await writeFile(path.join(directory, 'ic_launcher.png'), icon);
+    await writeFile(path.join(directory, 'ic_launcher_round.png'), icon);
+
+    // Adaptive icon layers live on a 108dp canvas (2.25x the 48dp icon).
+    const layerSize = Math.round(size * 2.25);
+    await createTransparentLayer('lega-android-foreground.svg', layerSize, path.join(directory, 'ic_launcher_foreground.png'));
+    await createTransparentLayer('lega-android-monochrome.svg', layerSize, path.join(directory, 'ic_launcher_monochrome.png'));
   }
 
   const backgroundPath = path.join(root, 'android', 'app', 'src', 'main', 'res', 'values', 'ic_launcher_background.xml');
-  await writeFile(backgroundPath, `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">${iconBackground}</color>\n</resources>\n`);
+  await writeFile(backgroundPath, `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">${BRAND_GREEN}</color>\n</resources>\n`);
 }
 
+/** Android 12+ splash icon: masked to a circle, so the mark goes in alone. */
 async function generateAndroidSplashIcon() {
   const directory = path.join(root, 'android', 'app', 'src', 'main', 'res', 'drawable-nodpi');
   await mkdir(directory, { recursive: true });
   const canvasSize = 288;
-  const logoSize = 132;
-  const logo = await sharp(logoPath)
-    .resize(logoSize, logoSize, { fit: 'contain' })
-    .png()
-    .toBuffer();
-  const brand = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasSize}" height="${canvasSize}" viewBox="0 0 ${canvasSize} ${canvasSize}"><text x="144" y="206" dominant-baseline="middle" text-anchor="middle" fill="#008f1d" font-family="Arial, sans-serif" font-size="16" font-weight="700">Mani App</text></svg>`
-  );
-  await sharp({
-    create: {
-      width: canvasSize,
-      height: canvasSize,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
-    }
-  })
-    .composite([
-      { input: logo, left: Math.round((canvasSize - logoSize) / 2), top: 60 },
-      { input: brand, left: 0, top: 0 }
-    ])
+  const markSize = 128;
+  const mark = await renderSvg('lega-mark-white.svg', markSize);
+  await sharp({ create: { width: canvasSize, height: canvasSize, channels: 4, background: TRANSPARENT } })
+    .composite([{ input: mark, gravity: 'centre' }])
     .png()
     .toFile(path.join(directory, 'splash_icon.png'));
 }
@@ -103,13 +95,15 @@ async function generateSplashImages(directory) {
     const outputPath = path.join(directory, entry.name);
     const { width, height } = await sharp(outputPath).metadata();
     if (!width || !height) continue;
-    await createCanvasWithLogo(width, height, 0.2, iconBackground, outputPath);
+    await createCanvasWithMark(width, height, 0.2, BRAND_GREEN, outputPath);
   }
 }
 
+/** iOS app icons must be opaque squares, so use the square brand icon. */
 async function generateIosIcon() {
   const outputPath = path.join(root, 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png');
-  await createCanvasWithLogo(1024, 1024, 0.82, iconBackground, outputPath);
+  const icon = await renderSvg('lega-app-icon-square.svg', 1024);
+  await sharp(icon).flatten({ background: BRAND_GREEN }).png().toFile(outputPath);
 }
 
 await generateAndroidIcons();
@@ -117,4 +111,4 @@ await generateAndroidSplashIcon();
 await generateSplashImages(path.join(root, 'android', 'app', 'src', 'main', 'res'));
 await generateIosIcon();
 await generateSplashImages(path.join(root, 'ios', 'App', 'App', 'Assets.xcassets', 'Splash.imageset'));
-console.log('Generated Mani App icons and splash images for Android and iOS.');
+console.log('Generated Lega icons and splash images for Android and iOS.');

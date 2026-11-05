@@ -56,18 +56,18 @@
   box-shadow: var(--float);
 }
 .pwa-update-actions { display: flex; gap: 8px; white-space: nowrap }
-.pwa-update-actions button { border: 0; background: transparent; color: #d7f3da; font: inherit; font-weight: 750 }
+.pwa-update-actions button { border: 0; background: transparent; color: #d4efe0; font: inherit; font-weight: 750 }
 .pwa-update-actions button:last-child { color: #c9ffb0 }
 @media (max-width: 480px) { .pwa-update-prompt { align-items: flex-start; flex-direction: column } }
 
 /* Token design system dipetakan ke Tailwind: bg-brand-700, text-ink-500, ... */
 @theme {
   --color-brand-50: #f0fdf4;
-  --color-brand-100: #eaf8e9;
+  --color-brand-100: #e7f4ed;
   --color-brand-500: #31bc62;
   --color-brand-600: #00a82d;
-  --color-brand-700: #008f1d;
-  --color-brand-800: #006e19;
+  --color-brand-700: #0b7a43;
+  --color-brand-800: #085c32;
   --color-canvas: #f4f6f4;
   --color-line: #e5e9e5;
   --color-ink-500: #707872;
@@ -87,68 +87,93 @@
 }
 
 /* ---------- Loading & error global (khusus versi React) ---------- */
-.mani-loading-overlay {
+
+/* Logo mark Lega sebagai inline SVG (lihat <LegaMark /> / <LegaLoader />).
+   Warnanya mengikuti `color` elemen induk lewat currentColor. */
+.lega-mark, .lega-loader { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* Animasi loader: garis menggambar dirinya, koin jatuh, lalu keduanya
+   memudar sebelum siklus diulang. Satu siklus = 1.6s. */
+.lega-loader-stroke {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: lega-draw 1.6s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+.lega-loader-coin {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lega-coin 1.6s cubic-bezier(.34, 1.56, .64, 1) infinite;
+}
+.lega-loader-fade { animation: lega-fade 1.6s ease infinite; }
+
+@keyframes lega-draw {
+  0% { stroke-dashoffset: 100; }
+  40%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes lega-coin {
+  0%, 35% { transform: translateY(-24px) scale(0); opacity: 0; }
+  55%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes lega-fade {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.lega-loading-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, .45);
+  background: rgba(8, 28, 17, .55);
   padding: 24px;
   cursor: wait;
 }
 
-.mani-loading-logo {
-  display: block;
-  width: clamp(96px, 14vw, 128px);
-  height: clamp(96px, 14vw, 128px);
-  object-fit: contain;
-  margin: 0;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .18));
-  transform-origin: 50% 80%;
-  animation: mani-wobble 1.4s ease-in-out infinite;
+.lega-loading-mark {
+  width: clamp(88px, 13vw, 116px);
+  height: clamp(88px, 13vw, 116px);
+  color: var(--white);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .25));
 }
+
 /* Loader kecil di ujung daftar bertahap (lihat <InlineLoader />). */
 .incremental-list-sentinel { width: 100%; height: 1px; }
-.mani-inline-loader {
+.lega-inline-loader {
   display: grid;
   place-items: center;
   min-height: 64px;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
-.mani-inline-loader-logo {
-  display: block;
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  transform-origin: 50% 80%;
-  animation: mani-wobble 1.4s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) { .mani-inline-loader-logo { animation: none; } }
+.lega-inline-loader-mark { width: 30px; height: 30px; color: var(--green); }
 
-.mani-skeleton { display: grid; gap: 12px; margin-top: 24px; }
-.mani-skeleton span {
+.lega-skeleton { display: grid; gap: 12px; margin-top: 24px; }
+.lega-skeleton span {
   display: block;
   height: 14px;
   border-radius: 999px;
   background: linear-gradient(100deg, #e4e9e5 20%, #f3f5f3 45%, #e4e9e5 70%);
   background-size: 220% 100%;
-  animation: mani-shimmer 1.6s ease-in-out infinite;
+  animation: lega-shimmer 1.6s ease-in-out infinite;
 }
-.mani-skeleton span:first-child { width: 50%; height: 20px; }
-.mani-skeleton span:nth-child(2) { width: 80%; }
-.mani-skeleton span:last-child { width: 64%; }
-.mani-page-skeleton { display: grid; gap: 16px; }
-.mani-skeleton-card { min-height: 160px; padding: 24px; }
-.mani-skeleton-card:first-child { min-height: 210px; }
-.mani-skeleton-card .mani-skeleton { margin-top: 8px; }
-@keyframes mani-wobble {
-  0%, 100% { transform: rotate(0); }
-  20%, 60% { transform: rotate(-9deg); }
-  40%, 80% { transform: rotate(9deg); }
-}
-@keyframes mani-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.lega-skeleton span:first-child { width: 50%; height: 20px; }
+.lega-skeleton span:nth-child(2) { width: 80%; }
+.lega-skeleton span:last-child { width: 64%; }
+.lega-page-skeleton { display: grid; gap: 16px; }
+.lega-skeleton-card { min-height: 160px; padding: 24px; }
+.lega-skeleton-card:first-child { min-height: 210px; }
+.lega-skeleton-card .lega-skeleton { margin-top: 8px; }
+@keyframes lega-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .mani-loading-logo, .mani-skeleton span { animation: none; }
+  .lega-loader-stroke, .lega-loader-coin, .lega-loader-fade, .lega-skeleton span {
+    animation: none;
+  }
+  .lega-loader-stroke { stroke-dashoffset: 0; }
+  .lega-loader-coin { opacity: 1; transform: none; }
 }
+
+/* Logo mark di sidebar desktop (<AppShell />): kotak hijau dari design-system
+   dengan mark Lega putih di dalamnya, menggantikan inisial huruf. */
+.brand-mark .lega-mark { width: 18px; height: 18px; color: var(--white); }

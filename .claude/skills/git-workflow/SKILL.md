@@ -1,9 +1,9 @@
 ---
 name: git-workflow
-description: Git & release workflow for Mani App (personal-wallet-react) — when to just work locally, when to branch per module, when it's OK to push to dev, and what's required before merging into Master (production, deployed on Vercel). Use this whenever about to commit, push, or merge a branch in this project.
+description: Git & release workflow for Lega (personal-wallet-react) — when to just work locally, when to branch per module, when it's OK to push to dev, and what's required before merging into Master (production, deployed on Vercel). Use this whenever about to commit, push, or merge a branch in this project.
 ---
 
-# Git workflow — Mani App (personal-wallet-react)
+# Git workflow — Lega (personal-wallet-react)
 
 The production branch in this repo is **`Master`** (capital M — not `main`),
 tracked directly by Vercel for production deploys. The integration branch is

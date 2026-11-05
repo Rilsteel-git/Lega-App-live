@@ -9,6 +9,7 @@ import { useAppData } from '../context/AppDataContext';
 import { Avatar } from './Avatar';
 import type { Profile } from '../types';
 import { Icon, type IconName } from './IconSprite';
+import { LegaMark } from './Ui';
 
 export type Route = 'dashboard' | 'wallets' | 'transactions' | 'categories' | 'statistics' | 'profile' | 'settings';
 
@@ -67,7 +68,7 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
       <div className="shell">
         {/* ================= SIDEBAR (desktop) ================= */}
         <aside className="sidebar">
-          <div className="brand"><span className="brand-mark">M</span>Mani App</div>
+          <div className="brand"><span className="brand-mark"><LegaMark /></span>Lega</div>
           <div className="nav-caption">Menu</div>
           <nav className="side-nav" id="side-nav" aria-label="Main navigation">
             {SIDE_NAV.map((item) => (
@@ -104,7 +105,7 @@ export function ShellFrame({ route, children, profile = null }: { route: Route; 
                     <Icon name="chevron-left" />
                   </button>
                 )}
-                <p className="eyebrow" id="topbar-eyebrow">Mani App</p>
+                <p className="eyebrow" id="topbar-eyebrow">Lega</p>
                 <a className="topbar-profile" href="#/profile" aria-label="Open profile">
                   <Avatar
                     id="topbar-avatar"

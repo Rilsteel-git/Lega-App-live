@@ -1,10 +1,10 @@
-# Mani App React
+# Lega React
 
 Remake of `personal-wallet` built with:
 
 - React + TypeScript + Vite
 - Supabase Auth, Postgres, Row Level Security, and Storage
-- Tailwind CSS v4 + Mani App design system
+- Tailwind CSS v4 + Lega design system
 - Chart.js via `react-chartjs-2`
 
 ## Running locally
@@ -65,9 +65,9 @@ npm run cap:sync
 
 ## PWA
 
-The production build generates `manifest.webmanifest` and a service worker. After deployment over HTTPS, install Mani App from the browser's app menu on Android or Add to Home Screen in Safari on iPhone. For a local PWA check, run `npm run build` and then `npm run preview`; the service worker is not enabled by `npm run dev`.
+The production build generates `manifest.webmanifest` and a service worker. After deployment over HTTPS, install Lega from the browser's app menu on Android or Add to Home Screen in Safari on iPhone. For a local PWA check, run `npm run build` and then `npm run preview`; the service worker is not enabled by `npm run dev`.
 
-The service worker caches the app shell and static assets. Wallet and transaction data still need a connection to Supabase. If the logo changes, run `npm run generate:pwa-icons` to regenerate the install icons from `public/mani-app-logo.png`.
+The service worker caches the app shell and static assets. Wallet and transaction data still need a connection to Supabase. If the logo changes, run `npm run generate:pwa-icons` to regenerate the install icons from `public/lega-app-icon.png`.
 
 ## Android and iOS apps
 

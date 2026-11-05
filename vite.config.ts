@@ -11,17 +11,17 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'mani-app-logo.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'lega-app-icon.png', 'brand/lega-mark.svg', 'brand/lega-app-icon.svg'],
       manifest: {
         id: '/',
-        name: 'Mani App',
-        short_name: 'Mani App',
+        name: 'Lega',
+        short_name: 'Lega',
         description: 'Track your wallets, transactions, and spending in one simple place.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
         background_color: '#f4f6f4',
-        theme_color: '#008f1d',
+        theme_color: '#0b7a43',
         lang: 'en',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },

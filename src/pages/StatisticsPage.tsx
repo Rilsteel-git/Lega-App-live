@@ -244,7 +244,7 @@ export function StatisticsPage() {
                       {
                         label: 'Income',
                         data: report.series.map((row) => row.income),
-                        backgroundColor: '#008f1d',
+                        backgroundColor: '#0b7a43',
                         borderRadius: 7,
                         maxBarThickness: 26
                       },
@@ -278,7 +278,7 @@ export function StatisticsPage() {
                   <div className="legend">
                     {report.series.map((row) => (
                       <div className="legend-row" key={row.label}>
-                        <i className="dot" style={{ background: '#008f1d' }} aria-hidden="true" />
+                        <i className="dot" style={{ background: '#0b7a43' }} aria-hidden="true" />
                         <span>{row.label}</span>
                         <strong className="num">
                           {formatCurrency(row.income)} / {formatCurrency(row.expense)}

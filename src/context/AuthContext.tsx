@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const NATIVE_AUTH_CALLBACK = 'com.rilsteel.maniapp://login-callback';
-const PASSWORD_RECOVERY_STORAGE_KEY = 'mani-password-recovery-session';
+const PASSWORD_RECOVERY_STORAGE_KEY = 'lega-password-recovery-session';
 
 function hasPasswordRecoveryMarker(url = window.location.href) {
   const parsed = new URL(url);

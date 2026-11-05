@@ -1,5 +1,5 @@
 /* ============================================================
-   mobile-shell.css — Mani App dikunci ke tampilan mobile.
+   mobile-shell.css — Lega dikunci ke tampilan mobile.
 
    PRD menetapkan produk ini mobile-first, jadi di layar lebar pun
    aplikasi tetap tampil sebagai app mobile yang dipusatkan, bukan
@@ -276,9 +276,9 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   text-overflow: ellipsis;
 }
 .filter-search-row > input[type="search"]:focus {
-  border-color: #8bd39a;
+  border-color: #74c49b;
   background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(139, 211, 154, .18);
+  box-shadow: 0 0 0 3px rgba(116, 196, 155, .22);
   outline: none;
 }
 .filter-search-row .chip-reset {
@@ -291,7 +291,7 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   font-size: 12px;
   white-space: nowrap;
 }
-.filter-search-row .chip-reset:hover { background: var(--mint); border-color: #9bdca5 }
+.filter-search-row .chip-reset:hover { background: var(--mint); border-color: #8acbaa }
 .filter-chips {
   display: flex;
   gap: 8px;
@@ -319,7 +319,7 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   white-space: nowrap;
 }
 .filter-chips .filter-trigger[data-value]:not([data-value=""]) {
-  border-color: #9bdca5;
+  border-color: #8acbaa;
   background: var(--mint);
   color: var(--green);
 }
@@ -497,8 +497,8 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-.wallet-row-item.dragging { position: relative; z-index: 2; cursor: grabbing; background: #effbef; box-shadow: 0 6px 18px rgba(0, 143, 29, .12) }
-.wallet-row-item:focus-visible { outline: 2px solid #8bd39a; outline-offset: 2px }
+.wallet-row-item.dragging { position: relative; z-index: 2; cursor: grabbing; background: #eff8f3; box-shadow: 0 6px 18px rgba(0, 143, 29, .12) }
+.wallet-row-item:focus-visible { outline: 2px solid #74c49b; outline-offset: 2px }
 .wallet-row {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto 16px;
@@ -616,7 +616,7 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   overflow: hidden;
   padding: 22px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #006d1b 0%, #008f1d 55%, #2bab4a 140%);
+  background: linear-gradient(135deg, #085c32 0%, #0b7a43 55%, #2fa96b 140%);
   color: #fff;
   box-shadow: var(--shadow);
 }
@@ -635,7 +635,7 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #d7f3da;
+  color: #d4efe0;
   font-size: 12px;
 }
 /* 32px terasa oversized di layar sempit; diturunkan ke skala yang sejalan
