@@ -63,7 +63,7 @@ export const stats: Record<string, string> = {
 
   // Pengaturan mata uang
   'Report currency': 'Mata uang laporan',
-  'Dashboard, totals and statistics': 'Dasbor, total, dan statistik',
+  'Dashboard, totals and statistics': 'Beranda, total, dan statistik',
   '1 {currency} = … IDR': '1 {currency} = … Rp',
   'Your manual report rate': 'Kurs laporan manualmu',
   'Fetching…': 'Mengambil…',

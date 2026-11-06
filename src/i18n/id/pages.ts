@@ -4,7 +4,7 @@ export const pages: Record<string, string> = {
   'No data yet': 'Belum ada data',
   'On track': 'Sesuai rencana',
   'Overspending': 'Boros',
-  'Dashboard': 'Dasbor',
+  'Dashboard': 'Beranda',
   'Total balance ({currency})': 'Total saldo ({currency})',
   'Show balance': 'Tampilkan saldo',
   'Hide balance': 'Sembunyikan saldo',
