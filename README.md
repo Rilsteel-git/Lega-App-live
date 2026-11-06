@@ -95,7 +95,7 @@ The web/PWA reset link opens the site where the request began; Android and iOS r
 ## Git workflow
 
 See `.claude/skills/git-workflow/SKILL.md` for the branching model this repo
-follows: `module/<name>` branches for feature work, merged into `dev` once a
+follows: `feature/<name>` branches for feature work, merged into `dev` once a
 local build passes, then `dev` merged into `Master` (production, deployed on
 Vercel) only after CI/CD is green.
 
@@ -114,3 +114,41 @@ After running `supabase/schema.sql`, run `supabase/migrations/20260921_multi_cur
 - Inter-wallet foreign-exchange transfers are not included in v1.
 
 Run `npm test` and `npm run build` for local verification. Database trigger integration requires applying the SQL migration to your Supabase project.
+
+## Receipt scanning setup
+
+New transactions can be pre-filled from a photo of a receipt. The photo is resized in the app,
+sent to the `scan-receipt` Supabase Edge Function, read by a vision model, and then thrown away
+(it is never stored). The app only fills in the form; the user still checks it and taps Save.
+
+1. Run `supabase/migrations/20261106120000_receipt_scans.sql` on the Supabase project. It adds the
+   table used for the daily per-user scan limit.
+2. Pick a provider, set its secrets, and deploy:
+
+   **Cloudflare Workers AI** (free daily allowance of 10,000 neurons, roughly 50-100 scans/day):
+
+   ```bash
+   supabase secrets set RECEIPT_SCAN_PROVIDER=cloudflare
+   supabase secrets set CLOUDFLARE_ACCOUNT_ID=...   # Cloudflare dashboard → Workers AI → Use REST API
+   supabase secrets set CLOUDFLARE_API_TOKEN=...    # token with the "Workers AI" permission
+   # optional, this is the default:
+   supabase secrets set CLOUDFLARE_AI_MODEL=@cf/meta/llama-4-scout-17b-16e-instruct
+   ```
+
+   **Claude** (paid per use, more accurate, picks categories more reliably):
+
+   ```bash
+   supabase secrets set RECEIPT_SCAN_PROVIDER=claude
+   supabase secrets set ANTHROPIC_API_KEY=...
+   supabase secrets set RECEIPT_SCAN_MODEL=claude-opus-5-5   # optional default; claude-haiku-5-5 is much cheaper
+   ```
+
+   Then, for either provider:
+
+   ```bash
+   supabase secrets set RECEIPT_SCAN_DAILY_LIMIT=30   # optional, scans per user per day
+   supabase functions deploy scan-receipt
+   ```
+
+The function checks the user's Supabase session, so leave JWT verification on. Switching provider
+only needs `secrets set` (no redeploy or app change).
