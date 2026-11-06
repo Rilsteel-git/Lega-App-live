@@ -77,7 +77,7 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '- total: the final amount actually paid (after discounts, tax and service charge; e.g. "TOTAL", "Total Bayar", "Grand Total", "Jumlah"), as a plain number. Ignore cash tendered and change ("Tunai", "Kembali"). Indonesian receipts use "." as thousands separator: "Rp 25.000" is 25000, "25.000,50" is 25000.5. null if unreadable.',
     '- currency: ISO 4217 code of the total, from the symbol, the printed currency, or the country of the address (e.g. IDR for Indonesia, VND for Vietnam, THB for Thailand). Never assume IDR for a receipt from another country. null only if truly unclear.',
     '- items: up to 5 main purchased item names, short and human-readable (e.g. "Aqua 600ml"), most expensive first. [] if not readable.',
-    '- category_id: the id of the ONE category below that best fits the purchase overall, or null if none fits.',
+    '- category_id: the id of the ONE category below that is most closely related to the purchase overall, even if it is not an exact fit (e.g. a minimarket or grocery receipt -> a shopping/groceries category; coffee, snacks or instant noodles -> a food/drinks category; fuel or parking -> a transport category). Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
     '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
     '- wallet_id: the id of the ONE wallet below that the payment method clearly points to: the wallet name appears in it (e.g. "QRIS DANA" -> a wallet named Dana), or it is cash/tunai and there is a wallet of type cash. null if the receipt shows no payment method, or no wallet clearly matches. Do not guess.',
     '',
@@ -123,6 +123,9 @@ function validDate(value: unknown, today: string): string | null {
   return value;
 }
 
+/** Lowercase words only, for loose name matching ("Food & Drinks" -> "food drinks"). */
+const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
 /** "Indomaret – Aqua 600ml, Roti Tawar, +2 item" (max 200 chars, the note column has no limit but keep it readable). */
 export function buildNote(merchant: string, items: string[]): string {
   const shown = items.slice(0, 3);
@@ -132,17 +135,28 @@ export function buildNote(merchant: string, items: string[]): string {
   return note.slice(0, 200);
 }
 
-/** Category id from the model, or the category name if a weaker model returned that instead. */
+/**
+ * Category id from the model. Weaker models sometimes return a name instead: an exact name
+ * match wins, otherwise a name that contains (or is contained in) the returned text, as long
+ * as exactly one category matches ("Food & Drinks" -> Food).
+ */
 function matchCategory(value: unknown, categories: CategoryChoice[]): string | null {
   if (typeof value !== 'string') return null;
   const byId = categories.find((category) => category.id === value);
   if (byId) return byId.id;
-  const name = value.trim().toLowerCase();
-  return categories.find((category) => category.name.trim().toLowerCase() === name)?.id ?? null;
+  const text = normalizeName(value);
+  if (!text) return null;
+  const exact = categories.find((category) => normalizeName(category.name) === text);
+  if (exact) return exact.id;
+  const padded = ` ${text} `;
+  const similar = categories.filter((category) => {
+    const name = normalizeName(category.name);
+    return name.length >= 3 && (padded.includes(` ${name} `) || ` ${name} `.includes(padded));
+  });
+  return similar.length === 1 ? similar[0].id : null;
 }
 
 const CASH_WORDS = /\b(cash|tunai|kontan)\b/i;
-const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /**
  * The wallet the payment method points to: the model's pick if it is one of the user's wallets,

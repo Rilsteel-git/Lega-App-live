@@ -109,8 +109,16 @@ test('schema limits category_id to the user\'s ids, or null when there are none'
 });
 
 test('category name is accepted when a model returns it instead of the id', () => {
-  assert.equal(normalizeScan(receipt({ category_id: ' makanan ' }), CATS, WALLETS, TODAY).categoryId, 'cat-food');
-  assert.equal(normalizeScan(receipt({ category_id: 'Transport' }), CATS, WALLETS, TODAY).categoryId, null);
+  const pick = (category_id, cats = CATS) => normalizeScan(receipt({ category_id }), cats, WALLETS, TODAY).categoryId;
+  assert.equal(pick(' makanan '), 'cat-food');
+  assert.equal(pick('Transport'), null);
+  // Similar names: contained either way, only when exactly one category matches.
+  assert.equal(pick('Makanan & Minuman'), 'cat-food');
+  assert.equal(pick('belanja'), 'cat-shop');
+  const foodAndDrinks = [{ id: 'cat-fd', name: 'Food & Drinks' }, { id: 'cat-bills', name: 'Bills' }];
+  assert.equal(pick('Food', foodAndDrinks), 'cat-fd');
+  const ambiguous = [{ id: 'a', name: 'Food Delivery' }, { id: 'b', name: 'Food Groceries' }];
+  assert.equal(pick('Food', ambiguous), null);
 });
 
 test('extractJson finds the object inside prose or code fences', () => {
