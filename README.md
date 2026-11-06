@@ -95,7 +95,7 @@ The web/PWA reset link opens the site where the request began; Android and iOS r
 ## Git workflow
 
 See `.claude/skills/git-workflow/SKILL.md` for the branching model this repo
-follows: `module/<name>` branches for feature work, merged into `dev` once a
+follows: `feature/<name>` branches for feature work, merged into `dev` once a
 local build passes, then `dev` merged into `Master` (production, deployed on
 Vercel) only after CI/CD is green.
 

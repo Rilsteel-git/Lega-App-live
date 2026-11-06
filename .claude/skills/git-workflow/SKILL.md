@@ -12,7 +12,7 @@ tracked directly by Vercel for production deploys. The integration branch is
 ## Branch model
 
 ```
-module/<module-name>   ← day-to-day work per feature/module, start here
+feature/<feature-name> ← day-to-day work per feature, start here
         │  (once it's safe locally)
         ▼
        dev             ← integration, staging before production
@@ -31,10 +31,10 @@ module/<module-name>   ← day-to-day work per feature/module, start here
 2. **Every new module/feature → a new branch off `dev`.**
    ```bash
    git checkout dev && git pull origin dev
-   git checkout -b module/<module-name>
+   git checkout -b feature/<feature-name>
    ```
-   Branch names use `module/<module-name>` (e.g. `module/multi-currency`,
-   `module/live-rate`). One branch = one module/feature — don't mix
+   Branch names use `feature/<feature-name>` in lowercase kebab-case (e.g.
+   `feature/multi-currency`, `feature/receipt-scan`). One branch = one feature — don't mix
    unrelated changes in the same branch.
 
 3. **Before merging a module branch into `dev`, confirm the module is "safe" locally:**
@@ -51,7 +51,7 @@ module/<module-name>   ← day-to-day work per feature/module, start here
 4. **Once safe locally, merge into `dev` and push:**
    ```bash
    git checkout dev
-   git merge module/<module-name>
+   git merge feature/<feature-name>
    git push origin dev
    ```
    Only then is the module branch considered done (it may be deleted after
@@ -131,8 +131,8 @@ functions, RLS policies, triggers, storage buckets):
 
 | Stage | Branch | Requirement to proceed |
 |---|---|---|
-| Day-to-day feature work | `module/<name>` | — |
-| Module considered safe | `module/<name>` → `dev` | Local build passes (`npm run build`); new migrations run on **staging** |
+| Day-to-day feature work | `feature/<name>` | — |
+| Feature considered safe | `feature/<name>` → `dev` | Local build passes (`npm run build`); new migrations run on **staging** |
 | Ready for production | `dev` → `Master` | CI/CD (Vercel build from `dev`) is green; app checked on staging; new migrations run on **production** first |
 
 Whenever unsure which stage is currently in play, ask the user rather than
