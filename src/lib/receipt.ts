@@ -18,6 +18,10 @@ export interface ReceiptScan {
   otherCurrency: string | null;
   items: string[];
   categoryId: string | null;
+  /** Cara bayar seperti tertulis di struk ("Cash", "QRIS DANA"), atau '' kalau tidak ada. */
+  paymentMethod: string;
+  /** Dompet user yang cocok dengan cara bayar, atau null. */
+  walletId: string | null;
   note: string;
 }
 

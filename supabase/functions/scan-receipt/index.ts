@@ -33,9 +33,12 @@ import {
   normalizeScan,
   receiptPrompt,
   receiptSchema,
-  type CategoryChoice
+  type CategoryChoice,
+  type WalletChoice
 } from './normalize.ts';
 
+/** Bump on every deploy-worthy change; returned in the response so a deploy can be verified. */
+const FUNCTION_VERSION = '2026-11-06.8';
 const PROVIDER = Deno.env.get('RECEIPT_SCAN_PROVIDER') === 'cloudflare' ? 'cloudflare' : 'claude';
 const DAILY_LIMIT = Number(Deno.env.get('RECEIPT_SCAN_DAILY_LIMIT')) || 30;
 /** ~5 MB of base64 is Claude's per-image limit; the app sends ~200-600 KB. */
@@ -83,13 +86,14 @@ interface ReadRequest {
   mediaType: MediaType;
   prompt: string;
   categoryIds: string[];
+  walletIds: string[];
 }
 
 /* ---------------- Claude ---------------- */
 
 let anthropic: Anthropic | null = null;
 
-async function readWithClaude({ image, mediaType, prompt, categoryIds }: ReadRequest): Promise<unknown> {
+async function readWithClaude({ image, mediaType, prompt, categoryIds, walletIds }: ReadRequest): Promise<unknown> {
   anthropic ??= new Anthropic({ timeout: AI_TIMEOUT_MS, maxRetries: 1 });
   // Built as a plain object: `fallbacks: "default"` is newer than some SDK typings.
   const params = {
@@ -100,7 +104,7 @@ async function readWithClaude({ image, mediaType, prompt, categoryIds }: ReadReq
     fallbacks: 'default',
     output_config: {
       effort: 'low',
-      format: { type: 'json_schema', schema: receiptSchema(categoryIds) }
+      format: { type: 'json_schema', schema: receiptSchema(categoryIds, walletIds) }
     },
     messages: [{
       role: 'user',
@@ -238,12 +242,25 @@ Deno.serve(async (request) => {
   }
   const categories = (rows || []) as CategoryChoice[];
 
+  // --- the user's wallets (to match the payment method on the receipt) ---------
+  const { data: walletRows, error: walletError } = await admin
+    .from('wallets')
+    .select('id, name, type, currency')
+    .eq('user_id', userId)
+    .order('position');
+  if (walletError) {
+    console.error('wallets load failed', walletError.message);
+    return reply(500, { code: 'server_error' });
+  }
+  const wallets = (walletRows || []) as WalletChoice[];
+
   // --- read the receipt --------------------------------------------------------
   const input: ReadRequest = {
     image,
     mediaType,
-    prompt: receiptPrompt(categories, today),
-    categoryIds: categories.map((category) => category.id)
+    prompt: receiptPrompt(categories, wallets, today),
+    categoryIds: categories.map((category) => category.id),
+    walletIds: wallets.map((wallet) => wallet.id)
   };
   let raw: unknown;
   const started = Date.now();
@@ -258,7 +275,9 @@ Deno.serve(async (request) => {
   }
   if (raw === null) return reply(422, { code: 'unreadable' });
 
-  const scan = normalizeScan(raw, categories, today);
+  const scan = normalizeScan(raw, categories, wallets, today);
   if (!scan.isReceipt) return reply(422, { code: 'not_a_receipt' });
-  return reply(200, { scan, provider: PROVIDER });
+  const categoryName = categories.find((category) => category.id === scan.categoryId)?.name ?? '(none)';
+  console.log(`scan result: purchase="${scan.purchaseType}" -> category="${categoryName}", payment="${scan.paymentMethod}" -> wallet=${scan.walletId ? 'matched' : 'none'}`);
+  return reply(200, { scan, provider: PROVIDER, version: FUNCTION_VERSION });
 });

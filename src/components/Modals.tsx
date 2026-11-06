@@ -592,14 +592,21 @@ function TransactionModal({
     try {
       const scan = await scanReceipt(file);
       const expenseIds = new Set(categoriesByType(activeCategories(categories), 'expense').map((category) => category.id));
-      // Wallet yang sudah dipilih dipertahankan; kalau belum, pilih wallet pertama yang mata uangnya sama.
-      const wallet = selectedWallet || (scan.currency ? wallets.find((item) => item.currency === scan.currency) : undefined);
+      // Dompet yang sudah dipilih dipertahankan. Kalau belum, pakai dompet yang cocok
+      // dengan cara bayar di struk ("Cash", "QRIS DANA"); tanpa cara bayar tetap kosong.
+      const scannedWallet = scan.walletId ? wallets.find((item) => item.id === scan.walletId) : undefined;
+      const wallet = selectedWallet || scannedWallet;
+      if (!selectedWallet && scannedWallet) setWalletId(scannedWallet.id);
       setType('expense');
-      if (!selectedWallet && wallet) setWalletId(wallet.id);
       // Nominal dalam mata uang yang belum didukung tidak diisi: angkanya akan salah di dompet mana pun.
-      if (scan.total !== null && !scan.otherCurrency) setAmount(String(roundToCurrency(scan.total, wallet?.currency || 'IDR')));
+      if (scan.total !== null && !scan.otherCurrency) setAmount(String(roundToCurrency(scan.total, wallet?.currency || scan.currency || 'IDR')));
       if (scan.date) setDate(scan.date);
-      setCategoryId(scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '');
+      // Sama seperti dompet: kategori pengeluaran yang sudah dipilih dipertahankan,
+      // kalau belum dipakai hasil scan, dan kosong kalau tidak ada yang cocok.
+      const keptCategory = expenseIds.has(categoryId) ? categoryId : '';
+      const scannedCategory = scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '';
+      const nextCategory = keptCategory || scannedCategory;
+      setCategoryId(nextCategory);
       if (scan.note) setNote(scan.note);
       clearError('amount', 'date', 'walletId', 'categoryId');
 
@@ -610,7 +617,12 @@ function TransactionModal({
           amount: scan.total !== null ? ' ' + scan.total.toLocaleString('id-ID') : ''
         }));
       } else if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
-      if (!scan.categoryId) hints.push(t('No matching category found; choose one.'));
+      if (!nextCategory) hints.push(t('No matching category found; choose one.'));
+      if (!wallet) {
+        hints.push(scan.paymentMethod
+          ? t('Paid with {method}; choose the matching wallet.', { method: scan.paymentMethod })
+          : t('Choose the wallet you paid with.'));
+      }
       if (scan.currency && wallet && scan.currency !== wallet.currency) {
         hints.push(t('The receipt is in {receipt}, but this wallet uses {wallet}.', {
           receipt: currencyLabel(scan.currency), wallet: currencyLabel(wallet.currency)

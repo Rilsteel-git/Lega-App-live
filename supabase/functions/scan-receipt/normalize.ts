@@ -12,6 +12,14 @@ export interface CategoryChoice {
   name: string;
 }
 
+export interface WalletChoice {
+  id: string;
+  name: string;
+  /** 'bank' | 'e-wallet' | 'cash' */
+  type: string;
+  currency: string;
+}
+
 /** What the function returns to the app. Every field can be empty: the app only pre-fills the form. */
 export interface ReceiptScan {
   isReceipt: boolean;
@@ -23,13 +31,19 @@ export interface ReceiptScan {
   otherCurrency: string | null;
   items: string[];
   categoryId: string | null;
+  /** The model's short description of the purchase, written before it picks the category (for logs). */
+  purchaseType: string;
+  /** Payment method as printed ("Cash", "QRIS DANA", "Debit BCA"), or '' if the receipt doesn't say. */
+  paymentMethod: string;
+  /** One of the user's wallets that matches the payment method, or null. */
+  walletId: string | null;
   note: string;
 }
 
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
 
 /** JSON schema for Claude's structured output. */
-export function receiptSchema(categoryIds: string[]) {
+export function receiptSchema(categoryIds: string[], walletIds: string[]) {
   return {
     type: 'object',
     properties: {
@@ -39,31 +53,53 @@ export function receiptSchema(categoryIds: string[]) {
       total: nullable({ type: 'number' }),
       currency: nullable({ type: 'string' }),
       items: { type: 'array', items: { type: 'string' } },
-      category_id: categoryIds.length ? nullable({ type: 'string', enum: categoryIds }) : { type: 'null' }
+      purchase_type: { type: 'string' },
+      category_id: categoryIds.length ? nullable({ type: 'string', enum: categoryIds }) : { type: 'null' },
+      payment_method: nullable({ type: 'string' }),
+      wallet_id: walletIds.length ? nullable({ type: 'string', enum: walletIds }) : { type: 'null' }
     },
-    required: ['is_receipt', 'merchant', 'date', 'total', 'currency', 'items', 'category_id'],
+    required: ['is_receipt', 'merchant', 'date', 'total', 'currency', 'items', 'purchase_type', 'category_id', 'payment_method', 'wallet_id'],
     additionalProperties: false
   };
 }
 
-export function receiptPrompt(categories: CategoryChoice[], today: string): string {
+export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoice[], today: string): string {
   const list = categories.length
     ? categories.map((category) => `- ${category.id}: ${category.name}`).join('\n')
     : '(the user has no expense categories)';
+  const walletList = wallets.length
+    ? wallets.map((wallet) => `- ${wallet.id}: ${wallet.name} (type ${wallet.type}, ${wallet.currency})`).join('\n')
+    : '(the user has no wallets)';
   return [
-    'Read this shopping receipt / bill / invoice photo and extract the purchase for a personal expense tracker.',
+    'Read this image of a purchase (a paper receipt, bill or invoice, OR a screenshot of a digital proof of payment) and extract it for a personal expense tracker.',
     '',
     'Rules:',
-    '- is_receipt: false if the image is not a receipt, bill or invoice (then set every other field to null / []).',
+    '- is_receipt: true for ANY proof of a purchase or payment: paper receipts, bills, invoices, AND screenshots of digital transactions, such as e-wallet / m-banking / PayLater transaction details ("Detail Transaksi", "Detail Bayar Nanti", "Rincian"), payment confirmations, order summaries, e-tickets and QRIS payments to a merchant. If in doubt and an amount was paid, use true. false only when the image shows no payment at all (a photo of a person, a product, a menu, a chat); then set every other field to null / [].',
     '- merchant: store or business name as printed, in normal capitalisation. null if not visible.',
     `- date: transaction date as YYYY-MM-DD. Indonesian receipts usually print DD/MM/YY or DD-MM-YYYY. Today is ${today}; if the year is missing, assume the most recent date that is not in the future. null if not visible.`,
     '- total: the final amount actually paid (after discounts, tax and service charge; e.g. "TOTAL", "Total Bayar", "Grand Total", "Jumlah"), as a plain number. Ignore cash tendered and change ("Tunai", "Kembali"). Indonesian receipts use "." as thousands separator: "Rp 25.000" is 25000, "25.000,50" is 25000.5. null if unreadable.',
     '- currency: ISO 4217 code of the total, from the symbol, the printed currency, or the country of the address (e.g. IDR for Indonesia, VND for Vietnam, THB for Thailand). Never assume IDR for a receipt from another country. null only if truly unclear.',
     '- items: up to 5 main purchased item names, short and human-readable (e.g. "Aqua 600ml"), most expensive first. [] if not readable.',
-    '- category_id: the id of the ONE category below that best fits the purchase overall, or null if none fits.',
+    '- purchase_type: BEFORE choosing the category, describe in a few words what kind of purchase this is and from what kind of merchant (e.g. "groceries at a minimarket", "coffee at a cafe", "marathon race registration (sports event)", "flight ticket (travel)"). "" if not a receipt.',
+    '- category_id: the id of the ONE category below that is most closely related to the purchase, even if it is not an exact fit. Decide by the KIND OF MERCHANT first, and only look at the items when the merchant type is unclear:',
+    '    * minimarket, supermarket, grocery or general store (Indomaret, Alfamart, Superindo, Hypermart, toko kelontong) -> a shopping/groceries category, whatever the items are (even if they are mostly drinks or snacks);',
+    '    * coffee shop (Starbucks, Kopi Kenangan, Janji Jiwa, Fore) -> a coffee category if there is one, otherwise a food/drinks category;',
+    '    * restaurant, cafe, warung makan, food court, bakery, food delivery (GoFood, GrabFood, ShopeeFood) -> a food/drinks category;',
+    '    * fuel station -> a fuel category (e.g. "Bensin") if there is one; parking, toll, ride-hailing or public transport -> a transport category;',
+    '    * pharmacy, clinic or hospital -> a health category;',
+    '    * utility, phone credit, internet or subscription bill -> a bills category;',
+    '    * ticket, registration or booking for an event -> a category for the TOPIC of the event (marathon, fun run, race pack or gym -> sports; concert or cinema -> entertainment; seminar or course -> education), and a travel/holiday category only for flights, hotels or tour packages;',
+    '    * merchant type unclear -> the category of the dominant items (by amount).',
+    '  MOST SPECIFIC WINS: when the user has both a specific and a general category that fit, choose the specific one (e.g. "Kopi" over "Food" for a coffee shop, "Bensin" over "Transport" for fuel, "Jajan" over "Food" for snacks). If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
+    '  PAYLATER: if the purchase was paid with a PayLater / buy-now-pay-later service, or the receipt is an installment or repayment ("cicilan", "tagihan") for one, and the receipt NAMES the service (SPayLater = Shopee, GoPay PayLater / GoPayLater = GoPay, TikTok PayLater = TikTok, Kredivo, Akulaku), choose the user category for THAT service, overriding every rule above. If the receipt only says "PayLater" without naming the service, do NOT guess between the PayLater categories: use null. A plain e-wallet payment (GoPay, ShopeePay, OVO, DANA) is NOT PayLater: never pick a PayLater category for it.',
+    '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
+    '- wallet_id: the id of the ONE wallet below that the payment method clearly points to: the wallet name appears in it (e.g. "QRIS DANA" -> a wallet named Dana), or it is cash/tunai and there is a wallet of type cash. null if the receipt shows no payment method, or no wallet clearly matches. Do not guess.',
     '',
     'Expense categories (id: name):',
-    list
+    list,
+    '',
+    "User's wallets (id: name (type, currency)):",
+    walletList
   ].join('\n');
 }
 
@@ -75,7 +111,8 @@ export const JSON_ONLY_INSTRUCTIONS = [
   '',
   'Respond with ONLY one JSON object, no markdown and no explanation, with exactly these keys:',
   '{"is_receipt": boolean, "merchant": string|null, "date": "YYYY-MM-DD"|null, "total": number|null,',
-  ' "currency": 3-letter ISO 4217 code|null, "items": string[], "category_id": string|null}',
+  ' "currency": 3-letter ISO 4217 code|null, "items": string[], "purchase_type": string, "category_id": string|null,',
+  ' "payment_method": string|null, "wallet_id": string|null}',
   'total must be a plain JSON number without thousands separators (25000, not "25.000").'
 ].join('\n');
 
@@ -100,6 +137,21 @@ function validDate(value: unknown, today: string): string | null {
   return value;
 }
 
+/** Lowercase words only, for loose name matching ("Food & Drinks" -> "food drinks"). */
+const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Repeated items become one entry with a count: ["Latte", "latte", "Croissant"] -> ["2x Latte", "Croissant"]. */
+export function mergeDuplicates(items: string[]): string[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const item of items) {
+    const key = item.toLowerCase();
+    const entry = counts.get(key);
+    if (entry) entry.count += 1;
+    else counts.set(key, { label: item, count: 1 });
+  }
+  return [...counts.values()].map(({ label, count }) => (count > 1 ? `${count}x ${label}` : label));
+}
+
 /** "Indomaret – Aqua 600ml, Roti Tawar, +2 item" (max 200 chars, the note column has no limit but keep it readable). */
 export function buildNote(merchant: string, items: string[]): string {
   const shown = items.slice(0, 3);
@@ -109,13 +161,99 @@ export function buildNote(merchant: string, items: string[]): string {
   return note.slice(0, 200);
 }
 
-/** Category id from the model, or the category name if a weaker model returned that instead. */
+/**
+ * Category id from the model. Weaker models sometimes return a name instead: an exact name
+ * match wins, otherwise a name that contains (or is contained in) the returned text, as long
+ * as exactly one category matches ("Food & Drinks" -> Food).
+ */
 function matchCategory(value: unknown, categories: CategoryChoice[]): string | null {
   if (typeof value !== 'string') return null;
   const byId = categories.find((category) => category.id === value);
   if (byId) return byId.id;
-  const name = value.trim().toLowerCase();
-  return categories.find((category) => category.name.trim().toLowerCase() === name)?.id ?? null;
+  const text = normalizeName(value);
+  if (!text) return null;
+  const exact = categories.find((category) => normalizeName(category.name) === text);
+  if (exact) return exact.id;
+  const padded = ` ${text} `;
+  const similar = categories.filter((category) => {
+    const name = normalizeName(category.name);
+    return name.length >= 3 && (padded.includes(` ${name} `) || ` ${name} `.includes(padded));
+  });
+  return similar.length === 1 ? similar[0].id : null;
+}
+
+const CASH_WORDS = /\b(cash|tunai|kontan)\b/i;
+/** Buy-now-pay-later services. The user files purchases paid this way under that service's category. */
+const PAYLATER_WORDS = /pay ?later|bayar nanti|kredivo|akulaku/i;
+const PAYLATER_BRANDS: [string, RegExp][] = [
+  ['shopee', /spay ?later|shopee/i],
+  ['gopay', /gopay|go ?pay ?later/i],
+  ['tiktok', /tiktok/i],
+  ['tokopedia', /tokopedia/i],
+  ['kredivo', /kredivo/i],
+  ['akulaku', /akulaku/i]
+];
+const isPaylater = (text: string) => PAYLATER_WORDS.test(text);
+const paylaterBrand = (text: string) => PAYLATER_BRANDS.find(([, pattern]) => pattern.test(text))?.[0] ?? null;
+
+const isPaylaterCategory = (name: string) => isPaylater(name) || /kredivo|akulaku/i.test(name);
+
+/**
+ * Drop the model's pick when it is a PayLater category whose service is not named anywhere in
+ * what was read from the receipt, and the user has more than one PayLater category. A receipt
+ * that only says "PAYLATER CICILAN" must not be guessed into "Shopee Paylater".
+ */
+function guardPaylaterGuess(categoryId: string | null, categories: CategoryChoice[], evidence: string): string | null {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category || !isPaylaterCategory(category.name)) return categoryId;
+  if (categories.filter((item) => isPaylaterCategory(item.name)).length < 2) return categoryId;
+  const brand = paylaterBrand(category.name);
+  const pattern = PAYLATER_BRANDS.find(([name]) => name === brand)?.[1];
+  return pattern && pattern.test(evidence) ? categoryId : null;
+}
+
+/**
+ * The user's PayLater category for a purchase paid with that PayLater service
+ * ("SPayLater Bayar Nanti" -> "Shopee Paylater"), or null. Only when exactly one category matches.
+ */
+function paylaterCategory(method: string, categories: CategoryChoice[]): string | null {
+  if (!isPaylater(method)) return null;
+  const brand = paylaterBrand(method);
+  if (!brand) return null;
+  const matches = categories.filter((category) => isPaylaterCategory(category.name) && paylaterBrand(category.name) === brand);
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+/**
+ * The wallet the payment method points to: the model's pick if it is one of the user's wallets,
+ * otherwise a conservative match done here (weaker models often return only the method).
+ * A wallet in a different currency than the receipt is never picked.
+ */
+function matchWallet(value: unknown, method: string, currency: string | null, wallets: WalletChoice[]): string | null {
+  // A PayLater payment is a loan, not money from a wallet: only a wallet that is itself a PayLater
+  // account may match it (so "GoPay PayLater" never picks the "GoPay" balance wallet).
+  const usable = wallets.filter((wallet) =>
+    (!currency || wallet.currency === currency) && (!isPaylater(method) || isPaylater(wallet.name)));
+  const byId = typeof value === 'string' ? usable.find((wallet) => wallet.id === value) : undefined;
+  if (byId) return byId.id;
+  if (!method) return null;
+  const text = ` ${normalizeName(method)} `;
+  // Wallet name inside the method ("QRIS DANA" -> Dana). Only when exactly one wallet matches.
+  // Spaces and dashes ignored too, so "Gopay" matches a wallet named "Go Pay" or "Go-Pay".
+  const compactText = text.replace(/ /g, '');
+  const named = usable.filter((wallet) => {
+    const name = normalizeName(wallet.name);
+    const compactName = name.replace(/ /g, '');
+    return compactName.length >= 3 && (text.includes(` ${name} `) || compactText.includes(compactName));
+  });
+  if (named.length === 1) return named[0].id;
+  if (named.length > 1) return null;
+  // Cash -> the user's only cash wallet.
+  if (CASH_WORDS.test(method)) {
+    const cash = usable.filter((wallet) => wallet.type === 'cash');
+    if (cash.length === 1) return cash[0].id;
+  }
+  return null;
 }
 
 /** Plain JSON number, or a digits-only string ("25000", "12.5"). Anything ambiguous like "25.000" is rejected. */
@@ -127,18 +265,27 @@ function readTotal(value: unknown): number | null {
 }
 
 /** Validate the model's JSON so nothing outside the user's own categories or a sane range reaches the app. */
-export function normalizeScan(raw: unknown, categories: CategoryChoice[], today: string): ReceiptScan {
+export function normalizeScan(raw: unknown, categories: CategoryChoice[], wallets: WalletChoice[], today: string): ReceiptScan {
   const data = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const isReceipt = data.is_receipt === true;
   const merchant = isReceipt ? cleanText(data.merchant, 60) : '';
   const items = isReceipt && Array.isArray(data.items)
-    ? data.items.map((item) => cleanText(item, 40)).filter(Boolean).slice(0, 5)
+    ? mergeDuplicates(data.items.map((item) => cleanText(item, 40)).filter(Boolean)).slice(0, 5)
     : [];
   const total = isReceipt ? readTotal(data.total) : null;
   const code = isReceipt && typeof data.currency === 'string' ? data.currency.trim().toUpperCase() : '';
   const currency = (CURRENCIES as readonly string[]).includes(code) ? code as ScanCurrency : null;
   const otherCurrency = !currency && /^[A-Z]{3}$/.test(code) ? code : null;
-  const categoryId = isReceipt ? matchCategory(data.category_id, categories) : null;
+  const paymentMethod = isReceipt ? cleanText(data.payment_method, 40) : '';
+  const purchaseType = isReceipt ? cleanText(data.purchase_type, 80) : '';
+  // Paid with a named PayLater -> that PayLater's category, whatever the model picked (the user's
+  // bookkeeping rule). Otherwise the model's pick, unless it guessed a PayLater the receipt never names.
+  const evidence = [merchant, paymentMethod, purchaseType, ...items].join(' ');
+  const categoryId = isReceipt
+    ? paylaterCategory(paymentMethod, categories)
+      ?? guardPaylaterGuess(matchCategory(data.category_id, categories), categories, evidence)
+    : null;
+  const walletId = isReceipt ? matchWallet(data.wallet_id, paymentMethod, currency ?? otherCurrency, wallets) : null;
   return {
     isReceipt,
     merchant,
@@ -148,6 +295,9 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], today:
     otherCurrency,
     items,
     categoryId,
+    purchaseType,
+    paymentMethod,
+    walletId,
     note: buildNote(merchant, items)
   };
 }
