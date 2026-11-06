@@ -27,20 +27,24 @@ export function formatCurrency(value: number, currency: Currency = 'IDR'): strin
   return rupiah ? text.replace(/Rp\s+/, 'Rp') : text;
 }
 
-function trimDecimal(n: number): string {
-  return (Math.round(n * 10) / 10).toString();
-}
-
-/** Format ringkas untuk hero/stat: Rp1,2M, Rp850K */
+/** Format ringkas untuk ringkasan transaksi.
+ *  id: Rp850 rb, Rp1,3 jt, Rp1,2 M (M = miliar)
+ *  en: IDR 850K, IDR 1.3M, IDR 1.2B */
 export function formatCompact(value: number, currency: Currency = 'IDR'): string {
   if (currency !== 'IDR') return formatCurrency(value, currency);
   const n = Number(value) || 0;
-  const sign = n < 0 ? '-' : '';
   const abs = Math.abs(n);
-  if (abs >= 1e9) return sign + 'Rp' + trimDecimal(abs / 1e9) + 'B';
-  if (abs >= 1e6) return sign + 'Rp' + trimDecimal(abs / 1e6) + 'M';
-  if (abs >= 1e3) return sign + 'Rp' + trimDecimal(abs / 1e3) + 'K';
-  return formatCurrency(n);
+  const indonesian = getLanguage() === 'id';
+  const units: [number, string][] = indonesian
+    ? [[1e9, ' M'], [1e6, ' jt'], [1e3, ' rb']]
+    : [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+  let index = units.findIndex(([size]) => abs >= size);
+  if (index < 0) return formatCurrency(n);
+  let rounded = Math.round((abs / units[index][0]) * 10) / 10;
+  // 999.999 dibulatkan jadi "1.000 rb"; naikkan ke satuan berikutnya ("1 jt").
+  if (rounded >= 1000 && index > 0) { index -= 1; rounded = Math.round((abs / units[index][0]) * 10) / 10; }
+  const short = rounded.toLocaleString(indonesian ? 'id-ID' : 'en-US', { maximumFractionDigits: 1 });
+  return (n < 0 ? '-' : '') + (indonesian ? 'Rp' : 'IDR ') + short + units[index][1];
 }
 
 /** Tanda + / − eksplisit supaya income/expense tidak dibedakan warna saja. */
