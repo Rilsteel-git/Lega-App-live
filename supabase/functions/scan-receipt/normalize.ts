@@ -83,6 +83,7 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '    * fuel station, parking, toll, ride-hailing or public transport -> a transport category;',
     '    * pharmacy, clinic or hospital -> a health category;',
     '    * utility, phone credit, internet or subscription bill -> a bills category;',
+    '    * ticket, registration or booking for an event -> a category for the TOPIC of the event (marathon, fun run, race pack or gym -> sports; concert or cinema -> entertainment; seminar or course -> education), and a travel/holiday category only for flights, hotels or tour packages;',
     '    * merchant type unclear -> the category of the dominant items (by amount).',
     '  If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
     '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
@@ -177,9 +178,12 @@ function matchWallet(value: unknown, method: string, currency: string | null, wa
   if (!method) return null;
   const text = ` ${normalizeName(method)} `;
   // Wallet name inside the method ("QRIS DANA" -> Dana). Only when exactly one wallet matches.
+  // Spaces and dashes ignored too, so "Gopay" matches a wallet named "Go Pay" or "Go-Pay".
+  const compactText = text.replace(/ /g, '');
   const named = usable.filter((wallet) => {
     const name = normalizeName(wallet.name);
-    return name.length >= 3 && text.includes(` ${name} `);
+    const compactName = name.replace(/ /g, '');
+    return compactName.length >= 3 && (text.includes(` ${name} `) || compactText.includes(compactName));
   });
   if (named.length === 1) return named[0].id;
   if (named.length > 1) return null;

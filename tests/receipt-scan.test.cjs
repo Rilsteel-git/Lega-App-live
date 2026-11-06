@@ -143,6 +143,10 @@ test('wallet: matched from the payment method when the model returns none', () =
   assert.equal(pick('Tunai').walletId, 'w-cash');
   assert.equal(pick('Debit BCA').walletId, 'w-bca');
   assert.equal(pick('OVO').walletId, null);
+  // Spaces and dashes in the wallet name are ignored.
+  const goPay = WALLETS.concat({ id: 'w-gopay', name: 'Go-Pay', type: 'e-wallet', currency: 'IDR' });
+  assert.equal(normalizeScan(receipt({ wallet_id: null, payment_method: 'Gopay' }), CATS, goPay, TODAY).walletId, 'w-gopay');
+  assert.equal(normalizeScan(receipt({ wallet_id: null, payment_method: 'QRIS GOPAY' }), CATS, goPay, TODAY).walletId, 'w-gopay');
   assert.equal(pick('Debit BCA').paymentMethod, 'Debit BCA');
 });
 
