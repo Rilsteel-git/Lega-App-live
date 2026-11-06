@@ -38,7 +38,7 @@ import {
 } from './normalize.ts';
 
 /** Bump on every deploy-worthy change; returned in the response so a deploy can be verified. */
-const FUNCTION_VERSION = '2026-11-06.5';
+const FUNCTION_VERSION = '2026-11-06.6';
 const PROVIDER = Deno.env.get('RECEIPT_SCAN_PROVIDER') === 'cloudflare' ? 'cloudflare' : 'claude';
 const DAILY_LIMIT = Number(Deno.env.get('RECEIPT_SCAN_DAILY_LIMIT')) || 30;
 /** ~5 MB of base64 is Claude's per-image limit; the app sends ~200-600 KB. */

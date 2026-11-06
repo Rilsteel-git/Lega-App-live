@@ -163,3 +163,34 @@ test('repeated items are merged with a count', () => {
   const scan = normalizeScan(receipt({ merchant: 'Starbucks', items: ['Latte', 'Latte'] }), CATS, WALLETS, TODAY);
   assert.equal(scan.note, 'Starbucks – 2x Latte');
 });
+
+test('paylater: purchase paid with PayLater goes to that PayLater category', () => {
+  const cats = CATS.concat(
+    { id: 'cat-spl', name: 'Shopee Paylater' },
+    { id: 'cat-gpl', name: 'Gopay Paylater' },
+    { id: 'cat-tpl', name: 'Tiktok Paylater' }
+  );
+  const pick = (payment_method, category_id = 'cat-food') =>
+    normalizeScan(receipt({ payment_method, category_id, wallet_id: null }), cats, WALLETS, TODAY).categoryId;
+  assert.equal(pick('SPayLater Bayar Nanti'), 'cat-spl');
+  assert.equal(pick('Shopee PayLater'), 'cat-spl');
+  assert.equal(pick('GoPay PayLater'), 'cat-gpl');
+  assert.equal(pick('GoPayLater'), 'cat-gpl');
+  assert.equal(pick('TikTok PayLater'), 'cat-tpl');
+  // Plain e-wallet payments keep the model's category.
+  assert.equal(pick('GoPay'), 'cat-food');
+  assert.equal(pick('ShopeePay'), 'cat-food');
+  // PayLater without a matching category keeps the model's category.
+  assert.equal(pick('Kredivo'), 'cat-food');
+});
+
+test('paylater: never matched to a regular wallet with the same brand', () => {
+  const wallets = WALLETS.concat({ id: 'w-gopay', name: 'GoPay', type: 'e-wallet', currency: 'IDR' });
+  const scan = (payment_method, wallet_id = null) =>
+    normalizeScan(receipt({ payment_method, wallet_id }), CATS, wallets, TODAY).walletId;
+  assert.equal(scan('GoPay PayLater'), null);
+  assert.equal(scan('GoPay PayLater', 'w-gopay'), null);
+  assert.equal(scan('GoPay'), 'w-gopay');
+  const withPaylaterWallet = wallets.concat({ id: 'w-gpl', name: 'GoPay PayLater', type: 'e-wallet', currency: 'IDR' });
+  assert.equal(normalizeScan(receipt({ payment_method: 'GoPay PayLater', wallet_id: null }), CATS, withPaylaterWallet, TODAY).walletId, 'w-gpl');
+});
