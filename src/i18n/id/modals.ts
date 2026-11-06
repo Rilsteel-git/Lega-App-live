@@ -155,6 +155,7 @@ export const modals: Record<string, string> = {
 
   // Profil
   'That photo is larger than 2 MB': 'Foto itu lebih dari 2 MB',
+  'Could not use that photo. Try a different one.': 'Foto itu tidak bisa dipakai. Coba foto lain.',
   'Use a JPG, PNG or WebP photo': 'Pakai foto JPG, PNG, atau WebP',
   'Please enter your name.': 'Masukkan namamu.',
   'Profile updated': 'Profil diperbarui',

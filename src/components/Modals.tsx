@@ -939,6 +939,8 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
    ============================================================ */
 const PHOTO_SIZE = 256;
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+/** Batas panjang data URL foto tersimpan. Harus sama dengan check di migration profile_photo_limit. */
+const PHOTO_MAX_STORED_CHARS = 120000;
 
 function ProfileModal() {
   const { profile, saveProfile } = useAppData();
@@ -1012,8 +1014,14 @@ function ProfileModal() {
             onCancel={() => setCropFile(null)}
             onError={(message) => toast(message, { variant: 'error' })}
             onConfirm={(canvas) => {
-              setPhoto(canvas.toDataURL('image/jpeg', 0.88));
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
               setCropFile(null);
+              // Praktis tidak pernah terjadi (foto 256×256 maks. ±68K karakter), tapi database akan menolaknya.
+              if (dataUrl.length > PHOTO_MAX_STORED_CHARS) {
+                toast(t('Could not use that photo. Try a different one.'), { variant: 'error' });
+                return;
+              }
+              setPhoto(dataUrl);
             }}
           />
         )}
