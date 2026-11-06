@@ -77,13 +77,63 @@ module/<module-name>   ← day-to-day work per feature/module, start here
    what comes from `dev`. If the fast-forward fails / there's a divergence,
    STOP and report it to the user; never force-push.)
 
+## Database environments & migrations
+
+Each branch talks to its own Supabase project. The app picks the project
+from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` at **build time**.
+
+| Branch / place | Supabase project | Where the keys live |
+|---|---|---|
+| Local dev (`.env.local`) | **staging** | `.env.local` (gitignored) |
+| `dev` + PR previews | **staging** | Vercel env vars → *Preview* |
+| `Master` | **production** | Vercel env vars → *Production* only |
+| Android/iOS release build | **production** | `.env.production` on the build machine |
+
+Production keys never go in `.env.local`, and real user data is never
+copied into staging. Staging uses dummy data only.
+
+Rules for any change to the database (tables, columns, constraints,
+functions, RLS policies, triggers, storage buckets):
+
+7. **Every DB change is a migration file in the repo.** Never change the
+   schema by hand in the dashboard only.
+   - Add `supabase/migrations/<YYYYMMDDHHMMSS>_<name>.sql` (full timestamp,
+     so two migrations on the same day don't clash).
+   - Write it to be re-runnable (`if not exists`, `drop … if exists` before
+     `create`, `create or replace`) and additive where possible (add
+     columns/tables; avoid dropping or renaming something the live app
+     still reads).
+   - Append the same SQL to the end of `supabase/staging-setup.sql` under a
+     `-- ####` header with the file name, so a fresh staging project can
+     still be set up in one run.
+   - Mention the migration in the PR description.
+
+8. **Run the migration on staging before (or at the same time as) the
+   branch reaches `dev`.** `dev` deploys against the staging database, so
+   code that needs a new column breaks on staging if the migration isn't
+   there yet. Then check the `dev` deploy actually works on staging.
+
+9. **Run the migration on production before pushing `dev` → `Master`.**
+   Order: production migration first, then `git push origin dev:Master`.
+   An additive migration is safe for the old code that is still live. If a
+   migration is *not* backwards-compatible (drop/rename/new NOT NULL without
+   a default), STOP and agree a plan with the user first, for example
+   expand-then-contract over two releases.
+
+10. **Claude cannot run SQL on Supabase from this repo.** When a change
+    includes a migration, Claude must tell the user exactly which file to
+    run, on which project (staging or production), and wait for the user to
+    confirm it ran. Never report a migration as applied without that
+    confirmation, and never push to `Master` while a production migration
+    is still pending.
+
 ## Quick reference
 
 | Stage | Branch | Requirement to proceed |
 |---|---|---|
 | Day-to-day feature work | `module/<name>` | — |
-| Module considered safe | `module/<name>` → `dev` | Local build passes (`npm run build`) |
-| Ready for production | `dev` → `Master` | CI/CD (Vercel build from `dev`) is green |
+| Module considered safe | `module/<name>` → `dev` | Local build passes (`npm run build`); new migrations run on **staging** |
+| Ready for production | `dev` → `Master` | CI/CD (Vercel build from `dev`) is green; app checked on staging; new migrations run on **production** first |
 
 Whenever unsure which stage is currently in play, ask the user rather than
 assume — especially about whether it's already OK to push to `Master`.
