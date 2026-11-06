@@ -6,25 +6,37 @@
 
    1. Checks the caller is signed in and under the daily scan limit.
    2. Loads the caller's active expense categories.
-   3. Asks Claude to read the receipt into structured JSON.
+   3. Asks a vision model to read the receipt into JSON.
    4. Validates the JSON (normalize.ts) and returns it. The app only
       pre-fills the transaction form; the user still reviews and saves.
 
    The image is never stored: it lives only in this request.
 
    Secrets (supabase secrets set ...):
-     ANTHROPIC_API_KEY            required
-     RECEIPT_SCAN_MODEL           optional, default claude-opus-5-5
+     RECEIPT_SCAN_PROVIDER        'claude' (default) or 'cloudflare'
      RECEIPT_SCAN_DAILY_LIMIT     optional, default 30 scans per user per day
-   SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
-   provided by the Edge runtime.
+   Claude:
+     ANTHROPIC_API_KEY            required for 'claude'
+     RECEIPT_SCAN_MODEL           optional, default claude-opus-5-5
+   Cloudflare Workers AI (free daily allowance):
+     CLOUDFLARE_ACCOUNT_ID        required for 'cloudflare'
+     CLOUDFLARE_API_TOKEN         required for 'cloudflare' (Workers AI permission)
+     CLOUDFLARE_AI_MODEL          optional, default @cf/meta/llama-4-scout-17b-16e-instruct
+   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are provided by the Edge runtime.
    ============================================================ */
 
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
-import { normalizeScan, receiptPrompt, receiptSchema, type CategoryChoice } from './normalize.ts';
+import {
+  extractJson,
+  JSON_ONLY_INSTRUCTIONS,
+  normalizeScan,
+  receiptPrompt,
+  receiptSchema,
+  type CategoryChoice
+} from './normalize.ts';
 
-const MODEL = Deno.env.get('RECEIPT_SCAN_MODEL') || 'claude-opus-5-5';
+const PROVIDER = Deno.env.get('RECEIPT_SCAN_PROVIDER') === 'cloudflare' ? 'cloudflare' : 'claude';
 const DAILY_LIMIT = Number(Deno.env.get('RECEIPT_SCAN_DAILY_LIMIT')) || 30;
 /** ~5 MB of base64 is Claude's per-image limit; the app sends ~200-600 KB. */
 const MAX_BASE64_CHARS = 5_000_000;
@@ -37,7 +49,6 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-const anthropic = new Anthropic();
 const admin = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -52,6 +63,11 @@ function reply(status: number, body: Record<string, unknown>) {
   });
 }
 
+/** A failure the app should show as `code`, with this HTTP status. */
+class ScanError extends Error {
+  constructor(readonly status: number, readonly code: string) { super(code); }
+}
+
 /** Today in Indonesia (UTC+7); the client's own date wins if it is within a day of it. */
 function resolveToday(clientToday: unknown): string {
   const server = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -59,6 +75,111 @@ function resolveToday(clientToday: unknown): string {
   const diff = Math.abs(Date.parse(clientToday) - Date.parse(server));
   return diff <= 86_400_000 ? clientToday : server;
 }
+
+interface ReadRequest {
+  image: string;
+  mediaType: MediaType;
+  prompt: string;
+  categoryIds: string[];
+}
+
+/* ---------------- Claude ---------------- */
+
+let anthropic: Anthropic | null = null;
+
+async function readWithClaude({ image, mediaType, prompt, categoryIds }: ReadRequest): Promise<unknown> {
+  anthropic ??= new Anthropic();
+  // Built as a plain object: `fallbacks: "default"` is newer than some SDK typings.
+  const params = {
+    model: Deno.env.get('RECEIPT_SCAN_MODEL') || 'claude-opus-5-5',
+    max_tokens: 4096,
+    betas: ['server-side-fallback-2026-07-01'],
+    // If a safety classifier declines, the API re-runs the request on a fallback model.
+    fallbacks: 'default',
+    output_config: {
+      effort: 'low',
+      format: { type: 'json_schema', schema: receiptSchema(categoryIds) }
+    },
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
+        { type: 'text', text: prompt }
+      ]
+    }]
+  } as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming;
+
+  let message: Anthropic.Beta.BetaMessage;
+  try {
+    message = await anthropic.beta.messages.create(params);
+  } catch (error) {
+    if (error instanceof Anthropic.RateLimitError) throw new ScanError(503, 'busy');
+    if (error instanceof Anthropic.APIError) console.error('Claude API error', error.status, error.message);
+    else console.error('Claude request failed', error);
+    throw new ScanError(502, 'ai_error');
+  }
+  if (message.stop_reason === 'refusal' || message.stop_reason === 'max_tokens') {
+    console.error('Claude stopped early', message.stop_reason);
+    throw new ScanError(422, 'unreadable');
+  }
+  const text = message.content.find((block) => block.type === 'text');
+  return extractJson(text && text.type === 'text' ? text.text : '');
+}
+
+/* ---------------- Cloudflare Workers AI ---------------- */
+
+/** Workers AI error code for "daily free allocation used up". */
+const CLOUDFLARE_DAILY_ALLOCATION_USED = 3036;
+
+async function readWithCloudflare({ image, mediaType, prompt }: ReadRequest): Promise<unknown> {
+  const account = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+  const token = Deno.env.get('CLOUDFLARE_API_TOKEN');
+  if (!account || !token) {
+    console.error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not set');
+    throw new ScanError(500, 'server_error');
+  }
+  const model = Deno.env.get('CLOUDFLARE_AI_MODEL') || '@cf/meta/llama-4-scout-17b-16e-instruct';
+
+  let response: Response;
+  try {
+    response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${model}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        max_tokens: 1024,
+        temperature: 0,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt + JSON_ONLY_INSTRUCTIONS },
+            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}` } }
+          ]
+        }]
+      })
+    });
+  } catch (error) {
+    console.error('Cloudflare request failed', error);
+    throw new ScanError(502, 'ai_error');
+  }
+
+  const body = await response.json().catch(() => null) as {
+    success?: boolean;
+    result?: { response?: unknown };
+    errors?: { code?: number; message?: string }[];
+  } | null;
+  if (!response.ok || !body?.success) {
+    const errors = body?.errors || [];
+    console.error('Cloudflare AI error', response.status, JSON.stringify(errors));
+    if (errors.some((error) => error.code === CLOUDFLARE_DAILY_ALLOCATION_USED)) throw new ScanError(503, 'quota_exhausted');
+    if (response.status === 429) throw new ScanError(503, 'busy');
+    throw new ScanError(502, 'ai_error');
+  }
+  // Text models return a string; some return the parsed object directly.
+  const output = body.result?.response;
+  return typeof output === 'string' ? extractJson(output) : output ?? null;
+}
+
+/* ---------------- handler ---------------- */
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -108,55 +229,25 @@ Deno.serve(async (request) => {
     return reply(500, { code: 'server_error' });
   }
   const categories = (rows || []) as CategoryChoice[];
-  const categoryIds = categories.map((category) => category.id);
 
-  // --- Claude --------------------------------------------------------------------
-  // Built as a plain object: `fallbacks: "default"` is newer than some SDK typings.
-  const params = {
-    model: MODEL,
-    max_tokens: 4096,
-    betas: ['server-side-fallback-2026-07-01'],
-    // If a safety classifier declines, the API re-runs the request on a fallback model.
-    fallbacks: 'default',
-    output_config: {
-      effort: 'low',
-      format: { type: 'json_schema', schema: receiptSchema(categoryIds) }
-    },
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
-        { type: 'text', text: receiptPrompt(categories, today) }
-      ]
-    }]
-  } as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming;
-
-  let message: Anthropic.Beta.BetaMessage;
-  try {
-    message = await anthropic.beta.messages.create(params);
-  } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) return reply(503, { code: 'busy' });
-    if (error instanceof Anthropic.APIError) {
-      console.error('Claude API error', error.status, error.message);
-      return reply(502, { code: 'ai_error' });
-    }
-    console.error('Claude request failed', error);
-    return reply(502, { code: 'ai_error' });
-  }
-
-  if (message.stop_reason === 'refusal' || message.stop_reason === 'max_tokens') {
-    console.error('Claude stopped early', message.stop_reason);
-    return reply(422, { code: 'unreadable' });
-  }
-  const text = message.content.find((block) => block.type === 'text');
+  // --- read the receipt --------------------------------------------------------
+  const input: ReadRequest = {
+    image,
+    mediaType,
+    prompt: receiptPrompt(categories, today),
+    categoryIds: categories.map((category) => category.id)
+  };
   let raw: unknown;
   try {
-    raw = JSON.parse(text && text.type === 'text' ? text.text : '');
-  } catch {
-    return reply(422, { code: 'unreadable' });
+    raw = PROVIDER === 'cloudflare' ? await readWithCloudflare(input) : await readWithClaude(input);
+  } catch (error) {
+    if (error instanceof ScanError) return reply(error.status, { code: error.code });
+    console.error('scan failed', error);
+    return reply(500, { code: 'server_error' });
   }
+  if (raw === null) return reply(422, { code: 'unreadable' });
 
-  const scan = normalizeScan(raw, categoryIds, today);
+  const scan = normalizeScan(raw, categories, today);
   if (!scan.isReceipt) return reply(422, { code: 'not_a_receipt' });
-  return reply(200, { scan });
+  return reply(200, { scan, provider: PROVIDER });
 });

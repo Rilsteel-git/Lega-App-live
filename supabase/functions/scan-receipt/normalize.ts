@@ -65,6 +65,26 @@ export function receiptPrompt(categories: CategoryChoice[], today: string): stri
   ].join('\n');
 }
 
+/**
+ * Extra instructions for models without enforced structured output (Cloudflare
+ * Workers AI vision models): the shape has to be asked for in the prompt.
+ */
+export const JSON_ONLY_INSTRUCTIONS = [
+  '',
+  'Respond with ONLY one JSON object, no markdown and no explanation, with exactly these keys:',
+  '{"is_receipt": boolean, "merchant": string|null, "date": "YYYY-MM-DD"|null, "total": number|null,',
+  ' "currency": "IDR"|"KRW"|"USD"|"EUR"|"JPY"|"SGD"|"MYR"|null, "items": string[], "category_id": string|null}',
+  'total must be a plain JSON number without thousands separators (25000, not "25.000").'
+].join('\n');
+
+/** Pull the JSON object out of a model reply that may wrap it in prose or ``` fences. */
+export function extractJson(text: string): unknown {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  try { return JSON.parse(text.slice(start, end + 1)); } catch { return null; }
+}
+
 function cleanText(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 }
@@ -87,24 +107,36 @@ export function buildNote(merchant: string, items: string[]): string {
   return note.slice(0, 200);
 }
 
-/** Validate Claude's JSON so nothing outside the user's own categories or a sane range reaches the app. */
-export function normalizeScan(raw: unknown, categoryIds: string[], today: string): ReceiptScan {
+/** Category id from the model, or the category name if a weaker model returned that instead. */
+function matchCategory(value: unknown, categories: CategoryChoice[]): string | null {
+  if (typeof value !== 'string') return null;
+  const byId = categories.find((category) => category.id === value);
+  if (byId) return byId.id;
+  const name = value.trim().toLowerCase();
+  return categories.find((category) => category.name.trim().toLowerCase() === name)?.id ?? null;
+}
+
+/** Plain JSON number, or a digits-only string ("25000", "12.5"). Anything ambiguous like "25.000" is rejected. */
+function readTotal(value: unknown): number | null {
+  const number = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\d+(\.\d{1,2})?$/.test(value.trim()) ? Number(value.trim()) : NaN;
+  return Number.isFinite(number) && number > 0 && number < 1e13 ? Math.round(number * 100) / 100 : null;
+}
+
+/** Validate the model's JSON so nothing outside the user's own categories or a sane range reaches the app. */
+export function normalizeScan(raw: unknown, categories: CategoryChoice[], today: string): ReceiptScan {
   const data = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const isReceipt = data.is_receipt === true;
   const merchant = isReceipt ? cleanText(data.merchant, 60) : '';
   const items = isReceipt && Array.isArray(data.items)
     ? data.items.map((item) => cleanText(item, 40)).filter(Boolean).slice(0, 5)
     : [];
-  const total = isReceipt && typeof data.total === 'number' && Number.isFinite(data.total)
-    && data.total > 0 && data.total < 1e13
-    ? Math.round(data.total * 100) / 100
-    : null;
+  const total = isReceipt ? readTotal(data.total) : null;
   const currency = isReceipt && (CURRENCIES as readonly unknown[]).includes(data.currency)
     ? data.currency as ScanCurrency
     : null;
-  const categoryId = isReceipt && typeof data.category_id === 'string' && categoryIds.includes(data.category_id)
-    ? data.category_id
-    : null;
+  const categoryId = isReceipt ? matchCategory(data.category_id, categories) : null;
   return {
     isReceipt,
     merchant,

@@ -15,9 +15,10 @@ function load(file) {
   return exports;
 }
 
-const { normalizeScan, buildNote, receiptSchema } = load('supabase/functions/scan-receipt/normalize.ts');
+const { normalizeScan, buildNote, receiptSchema, extractJson } = load('supabase/functions/scan-receipt/normalize.ts');
 const TODAY = '2026-11-06';
 const IDS = ['cat-food', 'cat-shop'];
+const CATS = [{ id: 'cat-food', name: 'Makanan' }, { id: 'cat-shop', name: 'Belanja' }];
 
 const receipt = (overrides = {}) => ({
   is_receipt: true,
@@ -31,7 +32,7 @@ const receipt = (overrides = {}) => ({
 });
 
 test('valid receipt passes through, cleaned', () => {
-  const scan = normalizeScan(receipt(), IDS, TODAY);
+  const scan = normalizeScan(receipt(), CATS, TODAY);
   assert.equal(scan.isReceipt, true);
   assert.equal(scan.merchant, 'Indomaret Fresh');
   assert.equal(scan.date, '2026-11-05');
@@ -42,30 +43,33 @@ test('valid receipt passes through, cleaned', () => {
 });
 
 test('category outside the user\'s list is dropped', () => {
-  assert.equal(normalizeScan(receipt({ category_id: 'someone-elses' }), IDS, TODAY).categoryId, null);
+  assert.equal(normalizeScan(receipt({ category_id: 'someone-elses' }), CATS, TODAY).categoryId, null);
 });
 
 test('future, invalid and very old dates are dropped', () => {
-  assert.equal(normalizeScan(receipt({ date: '2026-11-07' }), IDS, TODAY).date, null);
-  assert.equal(normalizeScan(receipt({ date: '2026-02-30' }), IDS, TODAY).date, null);
-  assert.equal(normalizeScan(receipt({ date: '05/11/2026' }), IDS, TODAY).date, null);
-  assert.equal(normalizeScan(receipt({ date: '1999-12-31' }), IDS, TODAY).date, null);
-  assert.equal(normalizeScan(receipt({ date: TODAY }), IDS, TODAY).date, TODAY);
+  assert.equal(normalizeScan(receipt({ date: '2026-11-07' }), CATS, TODAY).date, null);
+  assert.equal(normalizeScan(receipt({ date: '2026-02-30' }), CATS, TODAY).date, null);
+  assert.equal(normalizeScan(receipt({ date: '05/11/2026' }), CATS, TODAY).date, null);
+  assert.equal(normalizeScan(receipt({ date: '1999-12-31' }), CATS, TODAY).date, null);
+  assert.equal(normalizeScan(receipt({ date: TODAY }), CATS, TODAY).date, TODAY);
 });
 
 test('total must be a positive finite number, rounded to cents', () => {
-  assert.equal(normalizeScan(receipt({ total: 0 }), IDS, TODAY).total, null);
-  assert.equal(normalizeScan(receipt({ total: -5 }), IDS, TODAY).total, null);
-  assert.equal(normalizeScan(receipt({ total: '25000' }), IDS, TODAY).total, null);
-  assert.equal(normalizeScan(receipt({ total: 12.345 }), IDS, TODAY).total, 12.35);
+  assert.equal(normalizeScan(receipt({ total: 0 }), CATS, TODAY).total, null);
+  assert.equal(normalizeScan(receipt({ total: -5 }), CATS, TODAY).total, null);
+  assert.equal(normalizeScan(receipt({ total: '25000' }), CATS, TODAY).total, 25000);
+  // "25.000" could mean 25 or 25000 — rejected rather than guessed.
+  assert.equal(normalizeScan(receipt({ total: '25.000' }), CATS, TODAY).total, null);
+  assert.equal(normalizeScan(receipt({ total: 'Rp 25.000' }), CATS, TODAY).total, null);
+  assert.equal(normalizeScan(receipt({ total: 12.345 }), CATS, TODAY).total, 12.35);
 });
 
 test('unknown currency becomes null', () => {
-  assert.equal(normalizeScan(receipt({ currency: 'GBP' }), IDS, TODAY).currency, null);
+  assert.equal(normalizeScan(receipt({ currency: 'GBP' }), CATS, TODAY).currency, null);
 });
 
 test('not a receipt clears everything', () => {
-  const scan = normalizeScan(receipt({ is_receipt: false }), IDS, TODAY);
+  const scan = normalizeScan(receipt({ is_receipt: false }), CATS, TODAY);
   assert.deepEqual(
     JSON.parse(JSON.stringify([scan.isReceipt, scan.merchant, scan.total, scan.categoryId, scan.note, scan.items.length])),
     [false, '', null, null, '', 0]
@@ -74,7 +78,7 @@ test('not a receipt clears everything', () => {
 
 test('garbage input does not throw', () => {
   for (const raw of [null, undefined, 'text', 42, []]) {
-    assert.equal(normalizeScan(raw, IDS, TODAY).isReceipt, false);
+    assert.equal(normalizeScan(raw, CATS, TODAY).isReceipt, false);
   }
 });
 
@@ -89,4 +93,17 @@ test('schema limits category_id to the user\'s ids, or null when there are none'
   // JSON round-trip: objek dari konteks vm punya prototype berbeda.
   assert.deepEqual(JSON.parse(JSON.stringify(withIds.anyOf[0].enum)), IDS);
   assert.deepEqual(JSON.parse(JSON.stringify(receiptSchema([]).properties.category_id)), { type: 'null' });
+});
+
+test('category name is accepted when a model returns it instead of the id', () => {
+  assert.equal(normalizeScan(receipt({ category_id: ' makanan ' }), CATS, TODAY).categoryId, 'cat-food');
+  assert.equal(normalizeScan(receipt({ category_id: 'Transport' }), CATS, TODAY).categoryId, null);
+});
+
+test('extractJson finds the object inside prose or code fences', () => {
+  const plain = (value) => JSON.parse(JSON.stringify(value));
+  assert.deepEqual(plain(extractJson('{"total": 5}')), { total: 5 });
+  assert.deepEqual(plain(extractJson('Here you go:\n```json\n{"total": 5, "items": []}\n```')), { total: 5, items: [] });
+  assert.equal(extractJson('no json here'), null);
+  assert.equal(extractJson('{broken'), null);
 });
