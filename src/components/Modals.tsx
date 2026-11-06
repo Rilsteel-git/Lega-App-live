@@ -44,6 +44,7 @@ import { Avatar } from './Avatar';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { useIncrementalList } from '../hooks/useIncrementalList';
 import { TransactionRow } from './rows';
+import { AmountInput } from './AmountInput';
 import { currencyLabel, currencyOptions, fractionDigits, readDecimal, roundToCurrency, validAmount, validRate } from '../lib/currency';
 import { fetchLiveRate } from '../lib/exchangeRate';
 
@@ -205,14 +206,13 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
             <small className="hint-info">{t('Used to estimate this wallet’s balance in reports. Transaction rates are saved separately. Not a live rate — click "Get live rate" to fill in today\'s rate, then adjust if you need to.')}</small>
           </Field>}
           <Field name="balance" label={t('Starting balance ({currency})', { currency: currencyLabel(currency) })} error={errors.balance} htmlFor="wallet-balance">
-            <input
+            <AmountInput
               id="wallet-balance"
               name="balance"
-              type="text"
-              inputMode="decimal"
-              placeholder="0"
+              currency={currency}
+              allowNegative
               value={balance}
-              onChange={(event) => { setBalance(event.target.value); clearError('balance'); }}
+              onChange={(value) => { setBalance(value); clearError('balance'); }}
             />
             <small className="hint-ticker">{t('Money already in this wallet before you start tracking. It won\'t count as this month\'s income — use the Income button for money coming in from now on.')}</small>
           </Field>
@@ -670,14 +670,12 @@ function TransactionModal({
         <div style={{ height: 16 }} />
         <div className="form-grid">
           <Field name="amount" label={t('Amount ({currency})', { currency: currencyLabel(currency) })} error={errors.amount} htmlFor="transaction-amount">
-            <input
+            <AmountInput
               id="transaction-amount"
               name="amount"
-              type="text"
-              inputMode="decimal"
-              placeholder="0"
+              currency={currency}
               value={amount}
-              onChange={(event) => { setAmount(event.target.value); clearError('amount'); }}
+              onChange={(value) => { setAmount(value); clearError('amount'); }}
             />
           </Field>
 
@@ -833,13 +831,13 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
               onChange={(value) => { setToId(value); clearError('toId'); }}
             />
           </Field>
-          <Field name="amount" label={`Amount (${fromCurrency})`} error={errors.amount} htmlFor="transfer-amount">
-            <input
+          <Field name="amount" label={t('Amount ({currency})', { currency: currencyLabel(fromCurrency) })} error={errors.amount} htmlFor="transfer-amount">
+            <AmountInput
               id="transfer-amount"
-              inputMode="decimal"
-              placeholder="0"
+              name="amount"
+              currency={fromCurrency}
               value={amount}
-              onChange={(event) => { setAmount(event.target.value); clearError('amount'); }}
+              onChange={(value) => { setAmount(value); clearError('amount'); }}
             />
           </Field>
           <Field name="date" label={t('Date')} error={errors.date} htmlFor="transfer-date">
