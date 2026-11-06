@@ -1,7 +1,7 @@
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
 import { formatCurrency, formatCompact } from '../lib/format';
-import { convertedBalance, reportTransactions } from '../lib/currency';
+import { convertedBalance, currencyLabel, reportTransactions } from '../lib/currency';
 
 export function useReport() {
   const { profile, wallets, transactions } = useAppData();
@@ -14,6 +14,6 @@ export function useReport() {
     total: convertedBalance(wallets, transactions, rate, currency),
     formatCurrency: (value: number) => formatCurrency(value, currency),
     formatCompact: (value: number) => formatCompact(value, currency),
-    formatBalance: (value: number) => balanceHidden ? currency + ' ••••••' : formatCurrency(value, currency)
+    formatBalance: (value: number) => balanceHidden ? currencyLabel(currency) + (currencyLabel(currency) === 'Rp' ? '' : ' ') + '••••••' : formatCurrency(value, currency)
   };
 }

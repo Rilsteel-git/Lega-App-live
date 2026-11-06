@@ -44,7 +44,7 @@ import { Avatar } from './Avatar';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { useIncrementalList } from '../hooks/useIncrementalList';
 import { TransactionRow } from './rows';
-import { currencyOptions, fractionDigits, readDecimal, roundToCurrency, validAmount, validRate } from '../lib/currency';
+import { currencyLabel, currencyOptions, fractionDigits, readDecimal, roundToCurrency, validAmount, validRate } from '../lib/currency';
 import { fetchLiveRate } from '../lib/exchangeRate';
 
 type Errors = Record<string, string>;
@@ -195,7 +195,7 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
               </small>
             )}
           </Field>
-          {currency !== 'IDR' && <Field label={t('Wallet rate: 1 {currency} = … IDR', { currency })} error={errors.rate} full htmlFor="wallet-rate">
+          {currency !== 'IDR' && <Field label={t('Wallet rate: 1 {currency} = … IDR', { currency: currencyLabel(currency) })} error={errors.rate} full htmlFor="wallet-rate">
             <div className="rate-input-row">
               <input id="wallet-rate" inputMode="decimal" value={rate} placeholder={t('Enter your rate')} onChange={(e) => { setRate(e.target.value); clearError('rate'); }} />
               <button className="btn secondary rate-fetch-btn" type="button" disabled={fetchingRate} onClick={useLiveRate}>
@@ -204,7 +204,7 @@ function WalletModal({ wallet }: { wallet: Wallet | null }) {
             </div>
             <small className="hint-info">{t('Used to estimate this wallet’s balance in reports. Transaction rates are saved separately. Not a live rate — click "Get live rate" to fill in today\'s rate, then adjust if you need to.')}</small>
           </Field>}
-          <Field name="balance" label={t('Starting balance ({currency})', { currency })} error={errors.balance} htmlFor="wallet-balance">
+          <Field name="balance" label={t('Starting balance ({currency})', { currency: currencyLabel(currency) })} error={errors.balance} htmlFor="wallet-balance">
             <input
               id="wallet-balance"
               name="balance"
@@ -581,7 +581,7 @@ function TransactionModal({
 
   const walletOptions = wallets.length
     ? [{ value: '', label: t('Choose a wallet') }].concat(
-        wallets.map((wallet) => ({ value: wallet.id, label: wallet.name + ' (' + wallet.currency + ')' }))
+        wallets.map((wallet) => ({ value: wallet.id, label: wallet.name + ' (' + currencyLabel(wallet.currency) + ')' }))
       )
     : [{ value: '', label: t('No wallets yet') }];
 
@@ -669,7 +669,7 @@ function TransactionModal({
         />
         <div style={{ height: 16 }} />
         <div className="form-grid">
-          <Field name="amount" label={t('Amount ({currency})', { currency })} error={errors.amount} htmlFor="transaction-amount">
+          <Field name="amount" label={t('Amount ({currency})', { currency: currencyLabel(currency) })} error={errors.amount} htmlFor="transaction-amount">
             <input
               id="transaction-amount"
               name="amount"
@@ -688,7 +688,7 @@ function TransactionModal({
               value={validRate(exchangeRate) && Number.isFinite(readDecimal(amount)) && readDecimal(amount) > 0 ? formatCurrency(readDecimal(amount) * exchangeRate) : ''}
               placeholder={t('No rate set')}
             />
-            <small className="hint-info">{t('1 {currency} = {rate} IDR, from this wallet\'s settings.', { currency, rate: validRate(exchangeRate) ? exchangeRate : '…' })}</small>
+            <small className="hint-info">{t('1 {currency} = {rate} IDR, from this wallet\'s settings.', { currency: currencyLabel(currency), rate: validRate(exchangeRate) ? exchangeRate : '…' })}</small>
           </Field>}
           <Field name="date" label={t('Date')} error={errors.date} htmlFor="transaction-date">
             <SingleDatePicker value={date} onChange={(value) => { setDate(value); clearError('date'); }} />
@@ -758,10 +758,10 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
     : 0;
 
   const fromOptions = [{ value: '', label: t('Choose a wallet') }].concat(
-    wallets.map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${wallet.currency})` }))
+    wallets.map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${currencyLabel(wallet.currency)})` }))
   );
   const toOptions = [{ value: '', label: t('Choose a wallet') }].concat(
-    wallets.filter((wallet) => wallet.id !== fromId).map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${wallet.currency})` }))
+    wallets.filter((wallet) => wallet.id !== fromId).map((wallet) => ({ value: wallet.id, label: `${wallet.name} (${currencyLabel(wallet.currency)})` }))
   );
 
   async function submit(event: React.FormEvent) {
@@ -771,7 +771,7 @@ function TransferModal({ fromWalletId }: { fromWalletId?: string }) {
     if (!toId) next.toId = t('Choose a wallet to send to.');
     if (fromId && toId && fromId === toId) next.toId = t('Choose a different wallet.');
     if (!amountValid) next.amount = t('Enter an amount greater than 0 (max {digits} decimal places).', { digits: fractionDigits(fromCurrency) });
-    else if (fromWallet && toWallet && toAmount <= 0) next.amount = t('Amount is too small to convert to {currency}.', { currency: toCurrency });
+    else if (fromWallet && toWallet && toAmount <= 0) next.amount = t('Amount is too small to convert to {currency}.', { currency: currencyLabel(toCurrency) });
     if (!date) next.date = t('Pick a date.');
     setErrors(next);
     if (Object.keys(next).length) return;

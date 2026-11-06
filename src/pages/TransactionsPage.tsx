@@ -17,7 +17,7 @@ import { TransactionRow } from '../components/rows';
 import { useDeleteTransfer } from '../components/Modals';
 import { useReport } from '../hooks/useReport';
 import { useIncrementalList } from '../hooks/useIncrementalList';
-import { currencyOptions, reportTransactions } from '../lib/currency';
+import { currencyLabel, currencyOptions, reportTransactions } from '../lib/currency';
 
 const TRANSACTION_BATCH_SIZE = 10;
 
@@ -132,7 +132,7 @@ export function TransactionsPage() {
 
           <div className="filter-chips" role="group" aria-label={t('Transaction filters')}>
             <Dropdown label={t('Filter currency')} value={filters.currency} options={[{ value: '', label: t('All Currencies') }, ...currencyOptions]} onChange={(value) => update({ currency: value as '' | Currency })} />
-            <Dropdown label={t('Display amounts')} value={display} options={[{ value: 'original', label: t('Original Amounts') }, { value: 'report', label: t('Show in {currency}', { currency }) }, ...(currency !== 'IDR' ? [{ value: 'idr', label: t('Show in IDR') }] : [])]} onChange={setDisplay} />
+            <Dropdown label={t('Display amounts')} value={display} options={[{ value: 'original', label: t('Original Amounts') }, { value: 'report', label: t('Show in {currency}', { currency: currencyLabel(currency) }) }, ...(currency !== 'IDR' ? [{ value: 'idr', label: t('Show in IDR') }] : [])]} onChange={setDisplay} />
             <Dropdown
               label={t('Filter by wallet')}
               options={walletOptions}

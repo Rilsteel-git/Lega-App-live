@@ -12,6 +12,7 @@ import { withBalances } from '../lib/selectors';
 import { EmptyState } from '../components/Ui';
 import { AddWalletRow, WalletRow } from '../components/rows';
 import { useReorderableList } from '../hooks/useReorderableList';
+import { currencyLabel } from '../lib/currency';
 
 export function WalletsPage() {
   const { wallets, transactions, reorderWallets } = useAppData();
@@ -34,7 +35,7 @@ export function WalletsPage() {
       <div className="stack">
         <article className="card">
           <div className="card-head">
-            <div><h2>{t('Combined balance ({currency})', { currency })}</h2><p>{t('Estimated using manual wallet rates')}</p></div>
+            <div><h2>{t('Combined balance ({currency})', { currency: currencyLabel(currency) })}</h2><p>{t('Estimated using manual wallet rates')}</p></div>
           </div>
           <div className="stat-grid">
             <div className="stat">

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Currency } from '../types';
 import { useAppData } from '../context/AppDataContext';
 import { useUi } from '../context/UiContext';
-import { currencyOptions, readDecimal, validRate } from '../lib/currency';
+import { currencyLabel, currencyOptions, readDecimal, validRate } from '../lib/currency';
 import { fetchLiveRate } from '../lib/exchangeRate';
 import { Dropdown } from './Ui';
 import { Icon } from './IconSprite';
@@ -45,7 +45,7 @@ export function CurrencySettings() {
     <form onSubmit={save} className="stack">
       <Dropdown label={t('Report currency')} value={currency} options={currencyOptions} onChange={(value) => { setCurrency(value as Currency); setRate(''); setError(''); }} />
       {currency !== 'IDR' && <div className={`input${error ? ' error' : ''}`}>
-        <label htmlFor="report-rate">{t('1 {currency} = … IDR', { currency })}</label>
+        <label htmlFor="report-rate">{t('1 {currency} = … IDR', { currency: currencyLabel(currency) })}</label>
         <div className="rate-input-row">
           <input id="report-rate" inputMode="decimal" value={rate} onChange={(e) => { setRate(e.target.value); setError(''); }} placeholder={t('Your manual report rate')} />
           <button className="btn secondary rate-fetch-btn" type="button" disabled={fetchingRate} onClick={useLiveRate}>

@@ -17,6 +17,7 @@ import { Icon } from '../components/IconSprite';
 import { EmptyState } from '../components/Ui';
 import { AddWalletCard, TransactionRow, WalletCard } from '../components/rows';
 import { useDeleteTransfer } from '../components/Modals';
+import { currencyLabel } from '../lib/currency';
 
 export function DashboardPage() {
   const { wallets, categories, transactions: nativeTransactions } = useAppData();
@@ -47,7 +48,7 @@ export function DashboardPage() {
       <div className="hero-grid">
         <article className="hero">
           <div className="hero-top">
-            <span className="hero-label">{t('Total balance ({currency})', { currency })}
+            <span className="hero-label">{t('Total balance ({currency})', { currency: currencyLabel(currency) })}
               <button
                 className="hero-eye"
                 type="button"

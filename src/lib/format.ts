@@ -5,7 +5,7 @@
 
 import type { Currency, TransactionType } from '../types';
 import { fractionDigits } from './currency';
-import { t, tp } from '../i18n';
+import { getLanguage, t, tp } from '../i18n';
 
 
 export const MONTHS = [
@@ -21,7 +21,10 @@ export const MONTHS_SHORT = [
 /* ---------- Uang ---------- */
 
 export function formatCurrency(value: number, currency: Currency = 'IDR'): string {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency, currencyDisplay: 'code', minimumFractionDigits: fractionDigits(currency), maximumFractionDigits: fractionDigits(currency) }).format(Number(value) || 0);
+  const rupiah = currency === 'IDR' && getLanguage() === 'id';
+  const text = new Intl.NumberFormat('id-ID', { style: 'currency', currency, currencyDisplay: rupiah ? 'symbol' : 'code', minimumFractionDigits: fractionDigits(currency), maximumFractionDigits: fractionDigits(currency) }).format(Number(value) || 0);
+  // Intl menulis "Rp 1.250.000"; samakan dengan format ringkas ("Rp1,2M") tanpa spasi.
+  return rupiah ? text.replace(/Rp\s+/, 'Rp') : text;
 }
 
 function trimDecimal(n: number): string {
