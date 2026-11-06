@@ -15,7 +15,7 @@ function load(file) {
   return exports;
 }
 
-const { normalizeScan, buildNote, receiptSchema, extractJson } = load('supabase/functions/scan-receipt/normalize.ts');
+const { normalizeScan, buildNote, receiptSchema, extractJson, mergeDuplicates } = load('supabase/functions/scan-receipt/normalize.ts');
 const TODAY = '2026-11-06';
 const IDS = ['cat-food', 'cat-shop'];
 const CATS = [{ id: 'cat-food', name: 'Makanan' }, { id: 'cat-shop', name: 'Belanja' }];
@@ -154,4 +154,12 @@ test('wallet: stays empty without a payment method, or when cash is ambiguous', 
   assert.equal(normalizeScan(receipt({ wallet_id: null, payment_method: null }), CATS, WALLETS, TODAY).walletId, null);
   const twoCash = WALLETS.concat({ id: 'w-cash2', name: 'Celengan', type: 'cash', currency: 'IDR' });
   assert.equal(normalizeScan(receipt({ wallet_id: null, payment_method: 'Cash' }), CATS, twoCash, TODAY).walletId, null);
+});
+
+test('repeated items are merged with a count', () => {
+  const plain = (value) => JSON.parse(JSON.stringify(value));
+  assert.deepEqual(plain(mergeDuplicates(['Almondmilk Hazelnut Latte', 'almondmilk hazelnut latte', 'Croissant'])),
+    ['2x Almondmilk Hazelnut Latte', 'Croissant']);
+  const scan = normalizeScan(receipt({ merchant: 'Starbucks', items: ['Latte', 'Latte'] }), CATS, WALLETS, TODAY);
+  assert.equal(scan.note, 'Starbucks – 2x Latte');
 });

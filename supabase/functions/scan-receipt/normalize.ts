@@ -83,13 +83,14 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '- purchase_type: BEFORE choosing the category, describe in a few words what kind of purchase this is and from what kind of merchant (e.g. "groceries at a minimarket", "coffee at a cafe", "marathon race registration (sports event)", "flight ticket (travel)"). "" if not a receipt.',
     '- category_id: the id of the ONE category below that is most closely related to the purchase, even if it is not an exact fit. Decide by the KIND OF MERCHANT first, and only look at the items when the merchant type is unclear:',
     '    * minimarket, supermarket, grocery or general store (Indomaret, Alfamart, Superindo, Hypermart, toko kelontong) -> a shopping/groceries category, whatever the items are (even if they are mostly drinks or snacks);',
+    '    * coffee shop (Starbucks, Kopi Kenangan, Janji Jiwa, Fore) -> a coffee category if there is one, otherwise a food/drinks category;',
     '    * restaurant, cafe, warung makan, food court, bakery, food delivery (GoFood, GrabFood, ShopeeFood) -> a food/drinks category;',
-    '    * fuel station, parking, toll, ride-hailing or public transport -> a transport category;',
+    '    * fuel station -> a fuel category (e.g. "Bensin") if there is one; parking, toll, ride-hailing or public transport -> a transport category;',
     '    * pharmacy, clinic or hospital -> a health category;',
     '    * utility, phone credit, internet or subscription bill -> a bills category;',
     '    * ticket, registration or booking for an event -> a category for the TOPIC of the event (marathon, fun run, race pack or gym -> sports; concert or cinema -> entertainment; seminar or course -> education), and a travel/holiday category only for flights, hotels or tour packages;',
     '    * merchant type unclear -> the category of the dominant items (by amount).',
-    '  If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
+    '  MOST SPECIFIC WINS: when the user has both a specific and a general category that fit, choose the specific one (e.g. "Kopi" over "Food" for a coffee shop, "Bensin" over "Transport" for fuel, "Jajan" over "Food" for snacks). If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
     '  The category describes WHAT was bought, never HOW it was paid: do not pick a category because its name matches the payment method (e.g. a purchase paid with GoPay or GoPay PayLater is NOT the "GoPay PayLater" category). Pick a category named after a payment or credit service (e.g. "... PayLater", "Kartu Kredit ...") only when the receipt itself is a bill, installment or repayment for that service.',
     '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
     '- wallet_id: the id of the ONE wallet below that the payment method clearly points to: the wallet name appears in it (e.g. "QRIS DANA" -> a wallet named Dana), or it is cash/tunai and there is a wallet of type cash. null if the receipt shows no payment method, or no wallet clearly matches. Do not guess.',
@@ -138,6 +139,18 @@ function validDate(value: unknown, today: string): string | null {
 
 /** Lowercase words only, for loose name matching ("Food & Drinks" -> "food drinks"). */
 const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Repeated items become one entry with a count: ["Latte", "latte", "Croissant"] -> ["2x Latte", "Croissant"]. */
+export function mergeDuplicates(items: string[]): string[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const item of items) {
+    const key = item.toLowerCase();
+    const entry = counts.get(key);
+    if (entry) entry.count += 1;
+    else counts.set(key, { label: item, count: 1 });
+  }
+  return [...counts.values()].map(({ label, count }) => (count > 1 ? `${count}x ${label}` : label));
+}
 
 /** "Indomaret – Aqua 600ml, Roti Tawar, +2 item" (max 200 chars, the note column has no limit but keep it readable). */
 export function buildNote(merchant: string, items: string[]): string {
@@ -214,7 +227,7 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], wallet
   const isReceipt = data.is_receipt === true;
   const merchant = isReceipt ? cleanText(data.merchant, 60) : '';
   const items = isReceipt && Array.isArray(data.items)
-    ? data.items.map((item) => cleanText(item, 40)).filter(Boolean).slice(0, 5)
+    ? mergeDuplicates(data.items.map((item) => cleanText(item, 40)).filter(Boolean)).slice(0, 5)
     : [];
   const total = isReceipt ? readTotal(data.total) : null;
   const code = isReceipt && typeof data.currency === 'string' ? data.currency.trim().toUpperCase() : '';
