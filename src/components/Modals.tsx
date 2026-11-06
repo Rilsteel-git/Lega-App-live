@@ -47,6 +47,7 @@ import { TransactionRow } from './rows';
 import { AmountInput } from './AmountInput';
 import { currencyLabel, currencyOptions, fractionDigits, readDecimal, roundToCurrency, validAmount, validRate } from '../lib/currency';
 import { fetchLiveRate } from '../lib/exchangeRate';
+import { scanReceipt } from '../lib/receipt';
 
 type Errors = Record<string, string>;
 const CATEGORY_ICON_PREVIEW_COUNT = 9;
@@ -578,6 +579,44 @@ function TransactionModal({
   const [note, setNote] = useState(transaction ? transaction.note : '');
   const { errors, setErrors, clearError } = useFormErrors();
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanHint, setScanHint] = useState('');
+  const receiptInput = useRef<HTMLInputElement>(null);
+
+  async function onReceiptChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setScanning(true);
+    setScanHint('');
+    try {
+      const scan = await scanReceipt(file);
+      const expenseIds = new Set(categoriesByType(activeCategories(categories), 'expense').map((category) => category.id));
+      // Wallet yang sudah dipilih dipertahankan; kalau belum, pilih wallet pertama yang mata uangnya sama.
+      const wallet = selectedWallet || (scan.currency ? wallets.find((item) => item.currency === scan.currency) : undefined);
+      setType('expense');
+      if (!selectedWallet && wallet) setWalletId(wallet.id);
+      if (scan.total !== null) setAmount(String(roundToCurrency(scan.total, wallet?.currency || 'IDR')));
+      if (scan.date) setDate(scan.date);
+      setCategoryId(scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '');
+      if (scan.note) setNote(scan.note);
+      clearError('amount', 'date', 'walletId', 'categoryId');
+
+      const hints = [t('Filled in from the receipt. Check the details before saving.')];
+      if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
+      if (!scan.categoryId) hints.push(t('No matching category found; choose one.'));
+      if (scan.currency && wallet && scan.currency !== wallet.currency) {
+        hints.push(t('The receipt is in {receipt}, but this wallet uses {wallet}.', {
+          receipt: currencyLabel(scan.currency), wallet: currencyLabel(wallet.currency)
+        }));
+      }
+      setScanHint(hints.join(' '));
+    } catch (reason) {
+      toast(reason instanceof Error ? reason.message : t('Could not scan the receipt. Try again or fill it in manually.'), { variant: 'error' });
+    } finally {
+      setScanning(false);
+    }
+  }
 
   const walletOptions = wallets.length
     ? [{ value: '', label: t('Choose a wallet') }].concat(
@@ -654,11 +693,35 @@ function TransactionModal({
             </button>
           )}
           <button className="btn secondary" type="button" onClick={closeModal}>{t('Cancel')}</button>
-          <button className="btn primary" type="submit" form="transaction-form" disabled={busy}>{t('Save')}</button>
+          <button className="btn primary" type="submit" form="transaction-form" disabled={busy || scanning}>{t('Save')}</button>
         </div>
       }
     >
       <form id="transaction-form" className="transaction-form" onSubmit={submit} noValidate>
+        {!transaction && (
+          <div className="receipt-scan">
+            <input
+              ref={receiptInput}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={onReceiptChosen}
+            />
+            <button
+              className="btn secondary receipt-scan-btn"
+              type="button"
+              disabled={scanning || busy}
+              onClick={() => receiptInput.current?.click()}
+            >
+              <Icon name={scanning ? 'refresh' : 'camera'} className={`svg-icon${scanning ? ' spin' : ''}`} />
+              {scanning ? t('Reading receipt…') : t('Scan receipt')}
+            </button>
+            {scanHint
+              ? <small className="hint-ticker" role="status">{scanHint}</small>
+              : <small className="hint-info">{t('Take or choose a photo of a receipt to fill in the amount, date, category and note. The photo isn’t saved.')}</small>}
+          </div>
+        )}
         <Segmented
           id="transaction-type"
           label={t('Transaction type')}

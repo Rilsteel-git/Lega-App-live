@@ -113,6 +113,25 @@ export const modals: Record<string, string> = {
   '1 {currency} = {rate} IDR, from this wallet\'s settings.': '1 {currency} = {rate} Rp, dari pengaturan dompet ini.',
   'e.g. Lunch with the team': 'mis. Makan siang bareng tim',
 
+  // Scan struk
+  'Scan receipt': 'Scan struk',
+  'Reading receipt…': 'Membaca struk…',
+  'Take or choose a photo of a receipt to fill in the amount, date, category and note. The photo isn’t saved.': 'Foto atau pilih gambar struk untuk mengisi jumlah, tanggal, kategori, dan catatan otomatis. Fotonya tidak disimpan.',
+  'Filled in from the receipt. Check the details before saving.': 'Terisi dari struk. Cek dulu sebelum disimpan.',
+  'The total couldn’t be read; enter the amount yourself.': 'Total tidak terbaca; isi jumlahnya sendiri.',
+  'No matching category found; choose one.': 'Tidak ada kategori yang cocok; pilih sendiri.',
+  'The receipt is in {receipt}, but this wallet uses {wallet}.': 'Struk dalam {receipt}, tapi dompet ini memakai {wallet}.',
+  'Could not open that photo.': 'Foto itu tidak bisa dibuka.',
+  'Choose a photo of the receipt.': 'Pilih foto struknya.',
+  'That doesn’t look like a receipt. Try another photo.': 'Sepertinya itu bukan struk. Coba foto lain.',
+  'Couldn’t read this receipt. Try a sharper, well-lit photo.': 'Struk tidak terbaca. Coba foto yang lebih tajam dan terang.',
+  'You’ve reached today’s limit of {limit} scans. Try again tomorrow.': 'Batas {limit} scan hari ini sudah tercapai. Coba lagi besok.',
+  'That photo is too large. Try another one.': 'Foto terlalu besar. Coba foto lain.',
+  'Receipt scanning is busy right now. Try again in a moment.': 'Scan struk sedang sibuk. Coba lagi sebentar lagi.',
+  'Your session has expired. Sign in again.': 'Sesi kamu sudah habis. Silakan masuk lagi.',
+  'Could not scan the receipt. Try again or fill it in manually.': 'Struk tidak bisa di-scan. Coba lagi atau isi manual.',
+  'Could not reach the server. Check your connection.': 'Tidak bisa terhubung ke server. Cek koneksimu.',
+
   // Transfer
   'Choose a wallet to send from.': 'Pilih dompet asal.',
   'Choose a wallet to send to.': 'Pilih dompet tujuan.',

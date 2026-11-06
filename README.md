@@ -114,3 +114,22 @@ After running `supabase/schema.sql`, run `supabase/migrations/20260921_multi_cur
 - Inter-wallet foreign-exchange transfers are not included in v1.
 
 Run `npm test` and `npm run build` for local verification. Database trigger integration requires applying the SQL migration to your Supabase project.
+
+## Receipt scanning setup
+
+New transactions can be pre-filled from a photo of a receipt. The photo is resized in the app,
+sent to the `scan-receipt` Supabase Edge Function, read by Claude, and then thrown away (it is
+never stored). The app only fills in the form; the user still checks it and taps Save.
+
+1. Run `supabase/migrations/20261106120000_receipt_scans.sql` on the Supabase project. It adds the
+   table used for the daily per-user scan limit.
+2. Set the function secrets and deploy it:
+
+   ```bash
+   supabase secrets set ANTHROPIC_API_KEY=...            # required
+   supabase secrets set RECEIPT_SCAN_MODEL=claude-opus-5-5   # optional, this is the default
+   supabase secrets set RECEIPT_SCAN_DAILY_LIMIT=30          # optional, scans per user per day
+   supabase functions deploy scan-receipt
+   ```
+
+The function checks the user's Supabase session, so leave JWT verification on.

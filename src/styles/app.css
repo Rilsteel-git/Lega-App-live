@@ -128,6 +128,10 @@
 .rate-input-row input { flex: 1; min-width: 120px; }
 .rate-fetch-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; padding: 0 12px; }
 .rate-fetch-btn .svg-icon.spin { animation: spin .8s linear infinite; }
+/* Scan struk di atas form transaksi baru. */
+.receipt-scan { margin-bottom: 16px; }
+.receipt-scan-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.receipt-scan-btn .svg-icon.spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Confirm modal ---------- */
