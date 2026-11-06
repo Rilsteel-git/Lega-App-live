@@ -12,6 +12,7 @@ import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/IconSprite';
 import { navigate } from '../components/AppShell';
 import { t, tp } from '../i18n';
+import { currencyLabel } from '../lib/currency';
 
 /** "Tracking since March 2026" — dihitung dari saat profil dibuat. */
 function memberSince(iso?: string) {
@@ -155,7 +156,7 @@ export function ProfilePage() {
             <MenuRow
               icon="settings"
               title={t('Settings')}
-              meta={t('Language and report currency · {currency}', { currency: profile?.reportCurrency || 'IDR' })}
+              meta={t('Language and report currency · {currency}', { currency: currencyLabel(profile?.reportCurrency || 'IDR') })}
               onClick={() => navigate('settings')}
             />
             <MenuRow

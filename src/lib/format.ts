@@ -5,7 +5,7 @@
 
 import type { Currency, TransactionType } from '../types';
 import { fractionDigits } from './currency';
-import { t, tp } from '../i18n';
+import { getLanguage, t, tp } from '../i18n';
 
 
 export const MONTHS = [
@@ -21,7 +21,7 @@ export const MONTHS_SHORT = [
 /* ---------- Uang ---------- */
 
 export function formatCurrency(value: number, currency: Currency = 'IDR'): string {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency, currencyDisplay: 'code', minimumFractionDigits: fractionDigits(currency), maximumFractionDigits: fractionDigits(currency) }).format(Number(value) || 0);
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency, currencyDisplay: currency === 'IDR' && getLanguage() === 'id' ? 'symbol' : 'code', minimumFractionDigits: fractionDigits(currency), maximumFractionDigits: fractionDigits(currency) }).format(Number(value) || 0);
 }
 
 function trimDecimal(n: number): string {

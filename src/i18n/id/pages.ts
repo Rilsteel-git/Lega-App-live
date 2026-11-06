@@ -51,7 +51,7 @@ export const pages: Record<string, string> = {
   'Display amounts': 'Tampilan jumlah',
   'Original Amounts': 'Jumlah Asli',
   'Show in {currency}': 'Tampilkan dalam {currency}',
-  'Show in IDR': 'Tampilkan dalam IDR',
+  'Show in IDR': 'Tampilkan dalam Rp',
   'Filter by wallet': 'Filter berdasarkan dompet',
   'Filter by category': 'Filter berdasarkan kategori',
   'Filter by type': 'Filter berdasarkan jenis',

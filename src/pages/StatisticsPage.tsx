@@ -17,6 +17,7 @@ import { Icon } from '../components/IconSprite';
 import { RangeDatePicker } from '../components/DatePicker';
 import { CategoryIcon, EmptyState, Segmented } from '../components/Ui';
 import { t } from '../i18n';
+import { currencyLabel } from '../lib/currency';
 
 Chart.defaults.font.family = 'Inter, ui-sans-serif, system-ui, sans-serif';
 Chart.defaults.font.size = 11;
@@ -107,7 +108,7 @@ export function StatisticsPage() {
       <div className="stack">
         <article className="card">
           <div className="card-head">
-            <div><h2>{t('Overview')}</h2><p>{t('Report in {currency} · saved transaction rates', { currency })}</p></div>
+            <div><h2>{t('Overview')}</h2><p>{t('Report in {currency} · saved transaction rates', { currency: currencyLabel(currency) })}</p></div>
             <Segmented
               id="stats-period"
               label={t('Period')}

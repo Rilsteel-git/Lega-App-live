@@ -1,7 +1,12 @@
 import type { Currency, Transaction, Wallet } from '../types';
+import { getLanguage } from '../i18n';
 
 export const CURRENCIES: Currency[] = ['IDR', 'KRW', 'USD', 'EUR', 'JPY', 'SGD', 'MYR'];
-export const currencyOptions = CURRENCIES.map((value) => ({ value, label: value }));
+/** Label tampilan mata uang: dalam Bahasa Indonesia, IDR ditulis "Rp". */
+export function currencyLabel(currency: Currency): string {
+  return currency === 'IDR' && getLanguage() === 'id' ? 'Rp' : currency;
+}
+export const currencyOptions = CURRENCIES.map((value) => ({ value, label: currencyLabel(value) }));
 export function fractionDigits(currency: Currency) { return ['IDR', 'KRW', 'JPY'].includes(currency) ? 0 : 2; }
 export function validAmount(value: number, currency: Currency) {
   const units = value * 10 ** fractionDigits(currency);

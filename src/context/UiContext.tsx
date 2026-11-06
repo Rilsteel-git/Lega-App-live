@@ -18,6 +18,7 @@ import {
 import { t } from '../i18n';
 import type { Currency, TransactionFilters, TransactionType } from '../types';
 import { formatCurrency } from '../lib/format';
+import { currencyLabel } from '../lib/currency';
 
 export const EMPTY_FILTERS: TransactionFilters = {
   search: '', walletId: '', categoryId: '', type: '', from: '', to: '', currency: ''
@@ -134,7 +135,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
   useEffect(() => { writeHidden(balanceHidden); }, [balanceHidden]);
 
   const formatBalance = useCallback(
-    (value: number, currency: Currency = 'IDR') => (balanceHidden ? currency + MASK.slice(2) : formatCurrency(value, currency)),
+    (value: number, currency: Currency = 'IDR') => (balanceHidden ? currencyLabel(currency) + MASK.slice(2) : formatCurrency(value, currency)),
     [balanceHidden]
   );
 
