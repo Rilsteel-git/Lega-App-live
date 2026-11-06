@@ -14,6 +14,8 @@ export interface ReceiptScan {
   date: string | null;
   total: number | null;
   currency: Currency | null;
+  /** Mata uang struk yang belum didukung app (mis. "VND"); nominalnya tidak diisi. */
+  otherCurrency: string | null;
   items: string[];
   categoryId: string | null;
   note: string;

@@ -19,6 +19,8 @@ export interface ReceiptScan {
   date: string | null;
   total: number | null;
   currency: ScanCurrency | null;
+  /** ISO code the receipt is in when the app does not support it (e.g. "VND"); currency is then null. */
+  otherCurrency: string | null;
   items: string[];
   categoryId: string | null;
   note: string;
@@ -35,7 +37,7 @@ export function receiptSchema(categoryIds: string[]) {
       merchant: nullable({ type: 'string' }),
       date: nullable({ type: 'string' }),
       total: nullable({ type: 'number' }),
-      currency: nullable({ type: 'string', enum: [...CURRENCIES] }),
+      currency: nullable({ type: 'string' }),
       items: { type: 'array', items: { type: 'string' } },
       category_id: categoryIds.length ? nullable({ type: 'string', enum: categoryIds }) : { type: 'null' }
     },
@@ -56,7 +58,7 @@ export function receiptPrompt(categories: CategoryChoice[], today: string): stri
     '- merchant: store or business name as printed, in normal capitalisation. null if not visible.',
     `- date: transaction date as YYYY-MM-DD. Indonesian receipts usually print DD/MM/YY or DD-MM-YYYY. Today is ${today}; if the year is missing, assume the most recent date that is not in the future. null if not visible.`,
     '- total: the final amount actually paid (after discounts, tax and service charge; e.g. "TOTAL", "Total Bayar", "Grand Total", "Jumlah"), as a plain number. Ignore cash tendered and change ("Tunai", "Kembali"). Indonesian receipts use "." as thousands separator: "Rp 25.000" is 25000, "25.000,50" is 25000.5. null if unreadable.',
-    '- currency: currency of the total. Default to IDR for Indonesian receipts. null if unsure.',
+    '- currency: ISO 4217 code of the total, from the symbol, the printed currency, or the country of the address (e.g. IDR for Indonesia, VND for Vietnam, THB for Thailand). Never assume IDR for a receipt from another country. null only if truly unclear.',
     '- items: up to 5 main purchased item names, short and human-readable (e.g. "Aqua 600ml"), most expensive first. [] if not readable.',
     '- category_id: the id of the ONE category below that best fits the purchase overall, or null if none fits.',
     '',
@@ -73,7 +75,7 @@ export const JSON_ONLY_INSTRUCTIONS = [
   '',
   'Respond with ONLY one JSON object, no markdown and no explanation, with exactly these keys:',
   '{"is_receipt": boolean, "merchant": string|null, "date": "YYYY-MM-DD"|null, "total": number|null,',
-  ' "currency": "IDR"|"KRW"|"USD"|"EUR"|"JPY"|"SGD"|"MYR"|null, "items": string[], "category_id": string|null}',
+  ' "currency": 3-letter ISO 4217 code|null, "items": string[], "category_id": string|null}',
   'total must be a plain JSON number without thousands separators (25000, not "25.000").'
 ].join('\n');
 
@@ -133,9 +135,9 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], today:
     ? data.items.map((item) => cleanText(item, 40)).filter(Boolean).slice(0, 5)
     : [];
   const total = isReceipt ? readTotal(data.total) : null;
-  const currency = isReceipt && (CURRENCIES as readonly unknown[]).includes(data.currency)
-    ? data.currency as ScanCurrency
-    : null;
+  const code = isReceipt && typeof data.currency === 'string' ? data.currency.trim().toUpperCase() : '';
+  const currency = (CURRENCIES as readonly string[]).includes(code) ? code as ScanCurrency : null;
+  const otherCurrency = !currency && /^[A-Z]{3}$/.test(code) ? code : null;
   const categoryId = isReceipt ? matchCategory(data.category_id, categories) : null;
   return {
     isReceipt,
@@ -143,6 +145,7 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], today:
     date: isReceipt ? validDate(data.date, today) : null,
     total,
     currency,
+    otherCurrency,
     items,
     categoryId,
     note: buildNote(merchant, items)

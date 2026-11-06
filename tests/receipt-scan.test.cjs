@@ -64,8 +64,15 @@ test('total must be a positive finite number, rounded to cents', () => {
   assert.equal(normalizeScan(receipt({ total: 12.345 }), CATS, TODAY).total, 12.35);
 });
 
-test('unknown currency becomes null', () => {
-  assert.equal(normalizeScan(receipt({ currency: 'GBP' }), CATS, TODAY).currency, null);
+test('unsupported currency is reported separately, not passed off as a supported one', () => {
+  const vnd = normalizeScan(receipt({ currency: 'vnd', total: 88000 }), CATS, TODAY);
+  assert.equal(vnd.currency, null);
+  assert.equal(vnd.otherCurrency, 'VND');
+  assert.equal(vnd.total, 88000);
+  const idr = normalizeScan(receipt(), CATS, TODAY);
+  assert.equal(idr.currency, 'IDR');
+  assert.equal(idr.otherCurrency, null);
+  assert.equal(normalizeScan(receipt({ currency: 'Rupiah' }), CATS, TODAY).otherCurrency, null);
 });
 
 test('not a receipt clears everything', () => {

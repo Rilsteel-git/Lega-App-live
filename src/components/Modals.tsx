@@ -596,14 +596,20 @@ function TransactionModal({
       const wallet = selectedWallet || (scan.currency ? wallets.find((item) => item.currency === scan.currency) : undefined);
       setType('expense');
       if (!selectedWallet && wallet) setWalletId(wallet.id);
-      if (scan.total !== null) setAmount(String(roundToCurrency(scan.total, wallet?.currency || 'IDR')));
+      // Nominal dalam mata uang yang belum didukung tidak diisi: angkanya akan salah di dompet mana pun.
+      if (scan.total !== null && !scan.otherCurrency) setAmount(String(roundToCurrency(scan.total, wallet?.currency || 'IDR')));
       if (scan.date) setDate(scan.date);
       setCategoryId(scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '');
       if (scan.note) setNote(scan.note);
       clearError('amount', 'date', 'walletId', 'categoryId');
 
       const hints = [t('Filled in from the receipt. Check the details before saving.')];
-      if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
+      if (scan.otherCurrency) {
+        hints.push(t('The receipt is in {currency}{amount}, which isn’t supported yet. Convert it and enter the amount yourself.', {
+          currency: scan.otherCurrency,
+          amount: scan.total !== null ? ' ' + scan.total.toLocaleString('id-ID') : ''
+        }));
+      } else if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
       if (!scan.categoryId) hints.push(t('No matching category found; choose one.'));
       if (scan.currency && wallet && scan.currency !== wallet.currency) {
         hints.push(t('The receipt is in {receipt}, but this wallet uses {wallet}.', {
