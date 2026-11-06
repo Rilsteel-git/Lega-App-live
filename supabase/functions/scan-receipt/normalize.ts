@@ -86,6 +86,7 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '    * ticket, registration or booking for an event -> a category for the TOPIC of the event (marathon, fun run, race pack or gym -> sports; concert or cinema -> entertainment; seminar or course -> education), and a travel/holiday category only for flights, hotels or tour packages;',
     '    * merchant type unclear -> the category of the dominant items (by amount).',
     '  If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
+    '  The category describes WHAT was bought, never HOW it was paid: do not pick a category because its name matches the payment method (e.g. a purchase paid with GoPay or GoPay PayLater is NOT the "GoPay PayLater" category). Pick a category named after a payment or credit service (e.g. "... PayLater", "Kartu Kredit ...") only when the receipt itself is a bill, installment or repayment for that service.',
     '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
     '- wallet_id: the id of the ONE wallet below that the payment method clearly points to: the wallet name appears in it (e.g. "QRIS DANA" -> a wallet named Dana), or it is cash/tunai and there is a wallet of type cash. null if the receipt shows no payment method, or no wallet clearly matches. Do not guess.',
     '',
