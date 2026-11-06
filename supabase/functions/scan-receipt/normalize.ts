@@ -91,7 +91,7 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '    * ticket, registration or booking for an event -> a category for the TOPIC of the event (marathon, fun run, race pack or gym -> sports; concert or cinema -> entertainment; seminar or course -> education), and a travel/holiday category only for flights, hotels or tour packages;',
     '    * merchant type unclear -> the category of the dominant items (by amount).',
     '  MOST SPECIFIC WINS: when the user has both a specific and a general category that fit, choose the specific one (e.g. "Kopi" over "Food" for a coffee shop, "Bensin" over "Transport" for fuel, "Jajan" over "Food" for snacks). If the user has no category for that merchant type, pick the closest related one. Prefer a specific related category over a generic "Other" one. Use null ONLY if no category is related at all.',
-    '  PAYLATER: if the purchase was paid with a PayLater / buy-now-pay-later service (SPayLater = Shopee PayLater, GoPay PayLater / GoPayLater, TikTok PayLater, Kredivo, Akulaku) and the user has a category for that service (e.g. "Shopee Paylater"), choose that category, overriding every rule above. A plain e-wallet payment (GoPay, ShopeePay, OVO, DANA) is NOT PayLater: never pick a PayLater category for it.',
+    '  PAYLATER: if the purchase was paid with a PayLater / buy-now-pay-later service, or the receipt is an installment or repayment ("cicilan", "tagihan") for one, and the receipt NAMES the service (SPayLater = Shopee, GoPay PayLater / GoPayLater = GoPay, TikTok PayLater = TikTok, Kredivo, Akulaku), choose the user category for THAT service, overriding every rule above. If the receipt only says "PayLater" without naming the service, do NOT guess between the PayLater categories: use null. A plain e-wallet payment (GoPay, ShopeePay, OVO, DANA) is NOT PayLater: never pick a PayLater category for it.',
     '- payment_method: how it was paid, as printed (e.g. "Cash", "Tunai", "QRIS DANA", "GoPay", "OVO", "Debit BCA", "Kartu Kredit Mandiri"). null if the receipt does not say.',
     '- wallet_id: the id of the ONE wallet below that the payment method clearly points to: the wallet name appears in it (e.g. "QRIS DANA" -> a wallet named Dana), or it is cash/tunai and there is a wallet of type cash. null if the receipt shows no payment method, or no wallet clearly matches. Do not guess.',
     '',
@@ -196,6 +196,22 @@ const PAYLATER_BRANDS: [string, RegExp][] = [
 const isPaylater = (text: string) => PAYLATER_WORDS.test(text);
 const paylaterBrand = (text: string) => PAYLATER_BRANDS.find(([, pattern]) => pattern.test(text))?.[0] ?? null;
 
+const isPaylaterCategory = (name: string) => isPaylater(name) || /kredivo|akulaku/i.test(name);
+
+/**
+ * Drop the model's pick when it is a PayLater category whose service is not named anywhere in
+ * what was read from the receipt, and the user has more than one PayLater category. A receipt
+ * that only says "PAYLATER CICILAN" must not be guessed into "Shopee Paylater".
+ */
+function guardPaylaterGuess(categoryId: string | null, categories: CategoryChoice[], evidence: string): string | null {
+  const category = categories.find((item) => item.id === categoryId);
+  if (!category || !isPaylaterCategory(category.name)) return categoryId;
+  if (categories.filter((item) => isPaylaterCategory(item.name)).length < 2) return categoryId;
+  const brand = paylaterBrand(category.name);
+  const pattern = PAYLATER_BRANDS.find(([name]) => name === brand)?.[1];
+  return pattern && pattern.test(evidence) ? categoryId : null;
+}
+
 /**
  * The user's PayLater category for a purchase paid with that PayLater service
  * ("SPayLater Bayar Nanti" -> "Shopee Paylater"), or null. Only when exactly one category matches.
@@ -204,8 +220,7 @@ function paylaterCategory(method: string, categories: CategoryChoice[]): string 
   if (!isPaylater(method)) return null;
   const brand = paylaterBrand(method);
   if (!brand) return null;
-  const matches = categories.filter((category) =>
-    (isPaylater(category.name) || /kredivo|akulaku/i.test(category.name)) && paylaterBrand(category.name) === brand);
+  const matches = categories.filter((category) => isPaylaterCategory(category.name) && paylaterBrand(category.name) === brand);
   return matches.length === 1 ? matches[0].id : null;
 }
 
@@ -262,11 +277,14 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], wallet
   const currency = (CURRENCIES as readonly string[]).includes(code) ? code as ScanCurrency : null;
   const otherCurrency = !currency && /^[A-Z]{3}$/.test(code) ? code : null;
   const paymentMethod = isReceipt ? cleanText(data.payment_method, 40) : '';
-  // Paid with PayLater -> that PayLater's category, whatever the model picked (the user's bookkeeping rule).
-  const categoryId = isReceipt
-    ? paylaterCategory(paymentMethod, categories) ?? matchCategory(data.category_id, categories)
-    : null;
   const purchaseType = isReceipt ? cleanText(data.purchase_type, 80) : '';
+  // Paid with a named PayLater -> that PayLater's category, whatever the model picked (the user's
+  // bookkeeping rule). Otherwise the model's pick, unless it guessed a PayLater the receipt never names.
+  const evidence = [merchant, paymentMethod, purchaseType, ...items].join(' ');
+  const categoryId = isReceipt
+    ? paylaterCategory(paymentMethod, categories)
+      ?? guardPaylaterGuess(matchCategory(data.category_id, categories), categories, evidence)
+    : null;
   const walletId = isReceipt ? matchWallet(data.wallet_id, paymentMethod, currency ?? otherCurrency, wallets) : null;
   return {
     isReceipt,

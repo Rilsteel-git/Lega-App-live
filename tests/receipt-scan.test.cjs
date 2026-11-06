@@ -194,3 +194,20 @@ test('paylater: never matched to a regular wallet with the same brand', () => {
   const withPaylaterWallet = wallets.concat({ id: 'w-gpl', name: 'GoPay PayLater', type: 'e-wallet', currency: 'IDR' });
   assert.equal(normalizeScan(receipt({ payment_method: 'GoPay PayLater', wallet_id: null }), CATS, withPaylaterWallet, TODAY).walletId, 'w-gpl');
 });
+
+test('paylater: an unnamed PayLater is not guessed into one of several PayLater categories', () => {
+  const cats = CATS.concat(
+    { id: 'cat-spl', name: 'Shopee Paylater' },
+    { id: 'cat-gpl', name: 'Gopay Paylater' }
+  );
+  const scan = (fields) => normalizeScan(receipt({ wallet_id: null, ...fields }), cats, WALLETS, TODAY).categoryId;
+  // BCA transfer for "PAYLATER CICILAN", no service named: the model's Shopee guess is dropped.
+  assert.equal(scan({ merchant: null, items: ['PAYLATER CICILAN'], payment_method: 'Transfer BCA', purchase_type: 'paylater installment payment', category_id: 'cat-spl' }), null);
+  // Service named somewhere in what was read: the pick is kept.
+  assert.equal(scan({ merchant: 'Shopee', items: ['PAYLATER CICILAN'], payment_method: 'Transfer BCA', category_id: 'cat-spl' }), 'cat-spl');
+  // Only one PayLater category: nothing to confuse it with, the pick is kept.
+  const one = CATS.concat({ id: 'cat-spl', name: 'Shopee Paylater' });
+  assert.equal(normalizeScan(receipt({ items: ['PAYLATER CICILAN'], payment_method: 'Transfer BCA', category_id: 'cat-spl' }), one, WALLETS, TODAY).categoryId, 'cat-spl');
+  // Non-PayLater categories are never touched.
+  assert.equal(scan({ category_id: 'cat-food' }), 'cat-food');
+});
