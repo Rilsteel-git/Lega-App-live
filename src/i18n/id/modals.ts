@@ -130,7 +130,7 @@ export const modals: Record<string, string> = {
   'That photo is too large. Try another one.': 'Foto terlalu besar. Coba foto lain.',
   'Receipt scanning is busy right now. Try again in a moment.': 'Scan struk sedang sibuk. Coba lagi sebentar lagi.',
   'Reading the receipt took too long. Try again, or use a smaller, sharper photo.': 'Membaca struk terlalu lama. Coba lagi, atau pakai foto yang lebih kecil dan tajam.',
-  'Receipt scanning has reached today’s free limit. Try again tomorrow or fill it in manually.': 'Kuota gratis scan struk hari ini sudah habis. Coba lagi besok atau isi manual.',
+  'Receipt scanning is unavailable right now. Please try again later or fill it in manually.': 'Scan struk sedang tidak tersedia. Coba lagi nanti atau isi manual.',
   'Your session has expired. Sign in again.': 'Sesi kamu sudah habis. Silakan masuk lagi.',
   'Could not scan the receipt. Try again or fill it in manually.': 'Struk tidak bisa di-scan. Coba lagi atau isi manual.',
   'Could not reach the server. Check your connection.': 'Tidak bisa terhubung ke server. Cek koneksimu.',
