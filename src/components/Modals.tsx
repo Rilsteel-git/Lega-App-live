@@ -601,7 +601,12 @@ function TransactionModal({
       // Nominal dalam mata uang yang belum didukung tidak diisi: angkanya akan salah di dompet mana pun.
       if (scan.total !== null && !scan.otherCurrency) setAmount(String(roundToCurrency(scan.total, wallet?.currency || scan.currency || 'IDR')));
       if (scan.date) setDate(scan.date);
-      setCategoryId(scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '');
+      // Sama seperti dompet: kategori pengeluaran yang sudah dipilih dipertahankan,
+      // kalau belum dipakai hasil scan, dan kosong kalau tidak ada yang cocok.
+      const keptCategory = expenseIds.has(categoryId) ? categoryId : '';
+      const scannedCategory = scan.categoryId && expenseIds.has(scan.categoryId) ? scan.categoryId : '';
+      const nextCategory = keptCategory || scannedCategory;
+      setCategoryId(nextCategory);
       if (scan.note) setNote(scan.note);
       clearError('amount', 'date', 'walletId', 'categoryId');
 
@@ -612,7 +617,7 @@ function TransactionModal({
           amount: scan.total !== null ? ' ' + scan.total.toLocaleString('id-ID') : ''
         }));
       } else if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
-      if (!scan.categoryId) hints.push(t('No matching category found; choose one.'));
+      if (!nextCategory) hints.push(t('No matching category found; choose one.'));
       if (!wallet) {
         hints.push(scan.paymentMethod
           ? t('Paid with {method}; choose the matching wallet.', { method: scan.paymentMethod })
