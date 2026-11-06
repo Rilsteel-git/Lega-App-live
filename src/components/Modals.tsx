@@ -592,9 +592,11 @@ function TransactionModal({
     try {
       const scan = await scanReceipt(file);
       const expenseIds = new Set(categoriesByType(activeCategories(categories), 'expense').map((category) => category.id));
-      // Struk tidak menyebut dompet mana yang dipakai, jadi dompet tidak ditebak:
-      // yang sudah dipilih dipertahankan, kalau belum dipilih tetap kosong.
-      const wallet = selectedWallet;
+      // Dompet yang sudah dipilih dipertahankan. Kalau belum, pakai dompet yang cocok
+      // dengan cara bayar di struk ("Cash", "QRIS DANA"); tanpa cara bayar tetap kosong.
+      const scannedWallet = scan.walletId ? wallets.find((item) => item.id === scan.walletId) : undefined;
+      const wallet = selectedWallet || scannedWallet;
+      if (!selectedWallet && scannedWallet) setWalletId(scannedWallet.id);
       setType('expense');
       // Nominal dalam mata uang yang belum didukung tidak diisi: angkanya akan salah di dompet mana pun.
       if (scan.total !== null && !scan.otherCurrency) setAmount(String(roundToCurrency(scan.total, wallet?.currency || scan.currency || 'IDR')));
@@ -611,7 +613,11 @@ function TransactionModal({
         }));
       } else if (scan.total === null) hints.push(t('The total couldn’t be read; enter the amount yourself.'));
       if (!scan.categoryId) hints.push(t('No matching category found; choose one.'));
-      if (!wallet) hints.push(t('Choose the wallet you paid with.'));
+      if (!wallet) {
+        hints.push(scan.paymentMethod
+          ? t('Paid with {method}; choose the matching wallet.', { method: scan.paymentMethod })
+          : t('Choose the wallet you paid with.'));
+      }
       if (scan.currency && wallet && scan.currency !== wallet.currency) {
         hints.push(t('The receipt is in {receipt}, but this wallet uses {wallet}.', {
           receipt: currencyLabel(scan.currency), wallet: currencyLabel(wallet.currency)

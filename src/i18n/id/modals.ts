@@ -121,6 +121,7 @@ export const modals: Record<string, string> = {
   'The total couldn’t be read; enter the amount yourself.': 'Total tidak terbaca; isi jumlahnya sendiri.',
   'The receipt is in {currency}{amount}, which isn’t supported yet. Convert it and enter the amount yourself.': 'Struk dalam {currency}{amount}, mata uang ini belum didukung. Konversi dulu lalu isi jumlahnya sendiri.',
   'Choose the wallet you paid with.': 'Pilih dompet yang dipakai untuk bayar.',
+  'Paid with {method}; choose the matching wallet.': 'Dibayar dengan {method}; pilih dompet yang sesuai.',
   'No matching category found; choose one.': 'Tidak ada kategori yang cocok; pilih sendiri.',
   'The receipt is in {receipt}, but this wallet uses {wallet}.': 'Struk dalam {receipt}, tapi dompet ini memakai {wallet}.',
   'Could not open that photo.': 'Foto itu tidak bisa dibuka.',
