@@ -31,6 +31,8 @@ export interface ReceiptScan {
   otherCurrency: string | null;
   items: string[];
   categoryId: string | null;
+  /** The model's short description of the purchase, written before it picks the category (for logs). */
+  purchaseType: string;
   /** Payment method as printed ("Cash", "QRIS DANA", "Debit BCA"), or '' if the receipt doesn't say. */
   paymentMethod: string;
   /** One of the user's wallets that matches the payment method, or null. */
@@ -51,11 +53,12 @@ export function receiptSchema(categoryIds: string[], walletIds: string[]) {
       total: nullable({ type: 'number' }),
       currency: nullable({ type: 'string' }),
       items: { type: 'array', items: { type: 'string' } },
+      purchase_type: { type: 'string' },
       category_id: categoryIds.length ? nullable({ type: 'string', enum: categoryIds }) : { type: 'null' },
       payment_method: nullable({ type: 'string' }),
       wallet_id: walletIds.length ? nullable({ type: 'string', enum: walletIds }) : { type: 'null' }
     },
-    required: ['is_receipt', 'merchant', 'date', 'total', 'currency', 'items', 'category_id', 'payment_method', 'wallet_id'],
+    required: ['is_receipt', 'merchant', 'date', 'total', 'currency', 'items', 'purchase_type', 'category_id', 'payment_method', 'wallet_id'],
     additionalProperties: false
   };
 }
@@ -77,6 +80,7 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     '- total: the final amount actually paid (after discounts, tax and service charge; e.g. "TOTAL", "Total Bayar", "Grand Total", "Jumlah"), as a plain number. Ignore cash tendered and change ("Tunai", "Kembali"). Indonesian receipts use "." as thousands separator: "Rp 25.000" is 25000, "25.000,50" is 25000.5. null if unreadable.',
     '- currency: ISO 4217 code of the total, from the symbol, the printed currency, or the country of the address (e.g. IDR for Indonesia, VND for Vietnam, THB for Thailand). Never assume IDR for a receipt from another country. null only if truly unclear.',
     '- items: up to 5 main purchased item names, short and human-readable (e.g. "Aqua 600ml"), most expensive first. [] if not readable.',
+    '- purchase_type: BEFORE choosing the category, describe in a few words what kind of purchase this is and from what kind of merchant (e.g. "groceries at a minimarket", "coffee at a cafe", "marathon race registration (sports event)", "flight ticket (travel)"). "" if not a receipt.',
     '- category_id: the id of the ONE category below that is most closely related to the purchase, even if it is not an exact fit. Decide by the KIND OF MERCHANT first, and only look at the items when the merchant type is unclear:',
     '    * minimarket, supermarket, grocery or general store (Indomaret, Alfamart, Superindo, Hypermart, toko kelontong) -> a shopping/groceries category, whatever the items are (even if they are mostly drinks or snacks);',
     '    * restaurant, cafe, warung makan, food court, bakery, food delivery (GoFood, GrabFood, ShopeeFood) -> a food/drinks category;',
@@ -106,7 +110,7 @@ export const JSON_ONLY_INSTRUCTIONS = [
   '',
   'Respond with ONLY one JSON object, no markdown and no explanation, with exactly these keys:',
   '{"is_receipt": boolean, "merchant": string|null, "date": "YYYY-MM-DD"|null, "total": number|null,',
-  ' "currency": 3-letter ISO 4217 code|null, "items": string[], "category_id": string|null,',
+  ' "currency": 3-letter ISO 4217 code|null, "items": string[], "purchase_type": string, "category_id": string|null,',
   ' "payment_method": string|null, "wallet_id": string|null}',
   'total must be a plain JSON number without thousands separators (25000, not "25.000").'
 ].join('\n');
@@ -218,6 +222,7 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], wallet
   const otherCurrency = !currency && /^[A-Z]{3}$/.test(code) ? code : null;
   const categoryId = isReceipt ? matchCategory(data.category_id, categories) : null;
   const paymentMethod = isReceipt ? cleanText(data.payment_method, 40) : '';
+  const purchaseType = isReceipt ? cleanText(data.purchase_type, 80) : '';
   const walletId = isReceipt ? matchWallet(data.wallet_id, paymentMethod, currency ?? otherCurrency, wallets) : null;
   return {
     isReceipt,
@@ -228,6 +233,7 @@ export function normalizeScan(raw: unknown, categories: CategoryChoice[], wallet
     otherCurrency,
     items,
     categoryId,
+    purchaseType,
     paymentMethod,
     walletId,
     note: buildNote(merchant, items)

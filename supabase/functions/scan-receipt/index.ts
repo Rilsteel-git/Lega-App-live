@@ -37,6 +37,8 @@ import {
   type WalletChoice
 } from './normalize.ts';
 
+/** Bump on every deploy-worthy change; returned in the response so a deploy can be verified. */
+const FUNCTION_VERSION = '2026-11-06.4';
 const PROVIDER = Deno.env.get('RECEIPT_SCAN_PROVIDER') === 'cloudflare' ? 'cloudflare' : 'claude';
 const DAILY_LIMIT = Number(Deno.env.get('RECEIPT_SCAN_DAILY_LIMIT')) || 30;
 /** ~5 MB of base64 is Claude's per-image limit; the app sends ~200-600 KB. */
@@ -275,5 +277,7 @@ Deno.serve(async (request) => {
 
   const scan = normalizeScan(raw, categories, wallets, today);
   if (!scan.isReceipt) return reply(422, { code: 'not_a_receipt' });
-  return reply(200, { scan, provider: PROVIDER });
+  const categoryName = categories.find((category) => category.id === scan.categoryId)?.name ?? '(none)';
+  console.log(`scan result: purchase="${scan.purchaseType}" -> category="${categoryName}", payment="${scan.paymentMethod}" -> wallet=${scan.walletId ? 'matched' : 'none'}`);
+  return reply(200, { scan, provider: PROVIDER, version: FUNCTION_VERSION });
 });
