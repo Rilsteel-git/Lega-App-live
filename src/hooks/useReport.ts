@@ -14,6 +14,6 @@ export function useReport() {
     total: convertedBalance(wallets, transactions, rate, currency),
     formatCurrency: (value: number) => formatCurrency(value, currency),
     formatCompact: (value: number) => formatCompact(value, currency),
-    formatBalance: (value: number) => balanceHidden ? currencyLabel(currency) + ' ••••••' : formatCurrency(value, currency)
+    formatBalance: (value: number) => balanceHidden ? currencyLabel(currency) + (currencyLabel(currency) === 'Rp' ? '' : ' ') + '••••••' : formatCurrency(value, currency)
   };
 }
