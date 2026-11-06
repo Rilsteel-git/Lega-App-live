@@ -71,10 +71,10 @@ export function receiptPrompt(categories: CategoryChoice[], wallets: WalletChoic
     ? wallets.map((wallet) => `- ${wallet.id}: ${wallet.name} (type ${wallet.type}, ${wallet.currency})`).join('\n')
     : '(the user has no wallets)';
   return [
-    'Read this shopping receipt / bill / invoice photo and extract the purchase for a personal expense tracker.',
+    'Read this image of a purchase (a paper receipt, bill or invoice, OR a screenshot of a digital proof of payment) and extract it for a personal expense tracker.',
     '',
     'Rules:',
-    '- is_receipt: false if the image is not a receipt, bill or invoice (then set every other field to null / []).',
+    '- is_receipt: true for ANY proof of a purchase or payment: paper receipts, bills, invoices, AND screenshots of digital transactions, such as e-wallet / m-banking / PayLater transaction details ("Detail Transaksi", "Detail Bayar Nanti", "Rincian"), payment confirmations, order summaries, e-tickets and QRIS payments to a merchant. If in doubt and an amount was paid, use true. false only when the image shows no payment at all (a photo of a person, a product, a menu, a chat); then set every other field to null / [].',
     '- merchant: store or business name as printed, in normal capitalisation. null if not visible.',
     `- date: transaction date as YYYY-MM-DD. Indonesian receipts usually print DD/MM/YY or DD-MM-YYYY. Today is ${today}; if the year is missing, assume the most recent date that is not in the future. null if not visible.`,
     '- total: the final amount actually paid (after discounts, tax and service charge; e.g. "TOTAL", "Total Bayar", "Grand Total", "Jumlah"), as a plain number. Ignore cash tendered and change ("Tunai", "Kembali"). Indonesian receipts use "." as thousands separator: "Rp 25.000" is 25000, "25.000,50" is 25000.5. null if unreadable.',
