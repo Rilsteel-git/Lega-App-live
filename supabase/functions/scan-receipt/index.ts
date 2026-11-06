@@ -41,6 +41,8 @@ const DAILY_LIMIT = Number(Deno.env.get('RECEIPT_SCAN_DAILY_LIMIT')) || 30;
 /** ~5 MB of base64 is Claude's per-image limit; the app sends ~200-600 KB. */
 const MAX_BASE64_CHARS = 5_000_000;
 const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/** Give up on the AI provider after this long, so the app never spins forever. */
+const AI_TIMEOUT_MS = 45_000;
 type MediaType = typeof MEDIA_TYPES[number];
 
 const CORS = {
@@ -88,7 +90,7 @@ interface ReadRequest {
 let anthropic: Anthropic | null = null;
 
 async function readWithClaude({ image, mediaType, prompt, categoryIds }: ReadRequest): Promise<unknown> {
-  anthropic ??= new Anthropic();
+  anthropic ??= new Anthropic({ timeout: AI_TIMEOUT_MS, maxRetries: 1 });
   // Built as a plain object: `fallbacks: "default"` is newer than some SDK typings.
   const params = {
     model: Deno.env.get('RECEIPT_SCAN_MODEL') || 'claude-opus-5-5',
@@ -114,6 +116,7 @@ async function readWithClaude({ image, mediaType, prompt, categoryIds }: ReadReq
     message = await anthropic.beta.messages.create(params);
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) throw new ScanError(503, 'busy');
+    if (error instanceof Anthropic.APIConnectionTimeoutError) throw new ScanError(504, 'timeout');
     if (error instanceof Anthropic.APIError) console.error('Claude API error', error.status, error.message);
     else console.error('Claude request failed', error);
     throw new ScanError(502, 'ai_error');
@@ -145,6 +148,7 @@ async function readWithCloudflare({ image, mediaType, prompt }: ReadRequest): Pr
     response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${model}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
       body: JSON.stringify({
         max_tokens: 1024,
         temperature: 0,
@@ -158,6 +162,10 @@ async function readWithCloudflare({ image, mediaType, prompt }: ReadRequest): Pr
       })
     });
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      console.error(`Cloudflare AI timed out after ${AI_TIMEOUT_MS} ms`);
+      throw new ScanError(504, 'timeout');
+    }
     console.error('Cloudflare request failed', error);
     throw new ScanError(502, 'ai_error');
   }
@@ -238,9 +246,12 @@ Deno.serve(async (request) => {
     categoryIds: categories.map((category) => category.id)
   };
   let raw: unknown;
+  const started = Date.now();
   try {
     raw = PROVIDER === 'cloudflare' ? await readWithCloudflare(input) : await readWithClaude(input);
+    console.log(`scan read by ${PROVIDER} in ${Date.now() - started} ms (image ${Math.round(image.length * 0.75 / 1024)} KB)`);
   } catch (error) {
+    console.error(`scan failed with ${PROVIDER} after ${Date.now() - started} ms`);
     if (error instanceof ScanError) return reply(error.status, { code: error.code });
     console.error('scan failed', error);
     return reply(500, { code: 'server_error' });

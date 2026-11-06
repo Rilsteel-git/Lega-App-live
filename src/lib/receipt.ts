@@ -63,6 +63,7 @@ function errorMessage(code: unknown, limit?: unknown): string {
     case 'daily_limit': return t('You’ve reached today’s limit of {limit} scans. Try again tomorrow.', { limit: String(limit ?? '') });
     case 'image_too_large': return t('That photo is too large. Try another one.');
     case 'busy': return t('Receipt scanning is busy right now. Try again in a moment.');
+    case 'timeout': return t('Reading the receipt took too long. Try again, or use a smaller, sharper photo.');
     case 'quota_exhausted': return t('Receipt scanning has reached today’s free limit. Try again tomorrow or fill it in manually.');
     case 'unauthorized': return t('Your session has expired. Sign in again.');
     default: return t('Could not scan the receipt. Try again or fill it in manually.');
