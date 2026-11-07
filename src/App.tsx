@@ -9,6 +9,7 @@ import { EmptyState, Loading, PageSkeleton } from './components/Ui';
 import { AuthPage } from './pages/AuthPage';
 import { t } from './i18n';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { PullToRefresh } from './components/PullToRefresh';
 
 /* Page chunks are fetched on first visit. After a deploy, the previous build's
  * chunks are gone from the server, so a session started before it fails to
@@ -95,10 +96,18 @@ function AuthenticatedApp() {
         </div>
       </AppShell>
       {loading && <Loading message={initialized ? t('Saving changes') : t('Loading data')} />}
+      <PullToRefresh onRefresh={() => pullRefresh(refresh)} />
       <ModalHost />
       <ToastStack />
     </>
   );
+}
+
+/** Pull to refresh: reload the data and ask the service worker to look for a
+ *  new app version (installed PWAs have no other way to trigger either). */
+function pullRefresh(refresh: () => Promise<void>) {
+  void navigator.serviceWorker?.getRegistration().then((registration) => registration?.update()).catch(() => {});
+  return refresh().catch(() => { /* The error banner shows the failure. */ });
 }
 
 export function App() {

@@ -8,6 +8,11 @@ export const app: Record<string, string> = {
   'Saving changes': 'Menyimpan perubahan',
   'Loading data': 'Memuat data',
 
+  // PullToRefresh
+  'Pull to refresh': 'Tarik untuk memperbarui',
+  'Release to refresh': 'Lepas untuk memperbarui',
+  'Refreshing': 'Memperbarui',
+
   // AppErrorBoundary
   'Something went wrong': 'Terjadi kesalahan',
   'Reload Lega to continue.': 'Muat ulang Lega untuk melanjutkan.',
