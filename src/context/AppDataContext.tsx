@@ -2,10 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Currency, Category, CategoryPayload, Profile, Transaction, TransactionPayload, TransferPayload, Wallet, WalletPayload } from '../types';
 import { useAuth } from './AuthContext';
 import * as db from '../lib/db';
+import { readCachedData, writeCachedData } from '../lib/dataCache';
 import { t } from '../i18n';
 
+/** Refetch on return to the app only when the data is older than this. */
+const REVALIDATE_AFTER_MS = 30_000;
+
 interface AppDataValue {
+  /** Blocking work: the first load with nothing cached, or saving a change. */
   loading: boolean;
+  /** Any fetch in flight, including a background refresh over cached data. */
+  syncing: boolean;
   initialized: boolean;
   error: string;
   profile: Profile | null;
@@ -40,45 +47,74 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
   const requestId = useRef(0);
-  const [data, setData] = useState<db.AppData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const lastFetchedAt = useRef(0);
+  // Show the data cached on this device right away; refresh() below brings it
+  // up to date in the background.
+  const [data, setData] = useState<db.AppData | null>(() => (userId ? readCachedData(userId) : null));
+  const [fetching, setFetching] = useState(true);
+  const [saving, setSaving] = useState(0);
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
     if (!userId) return;
     const request = ++requestId.current;
-    setLoading(true);
+    setFetching(true);
     setError('');
     try {
       const next = await db.loadAppData(userId);
-      if (request === requestId.current) setData(next);
+      if (request === requestId.current) {
+        lastFetchedAt.current = Date.now();
+        setData(next);
+        writeCachedData(userId, next);
+      }
     } catch (reason) {
       if (request === requestId.current) setError(reason instanceof Error ? reason.message : t('Could not load app data.'));
       throw reason;
     } finally {
-      if (request === requestId.current) setLoading(false);
+      if (request === requestId.current) setFetching(false);
     }
   }, [userId]);
 
   useEffect(() => {
     // Jangan tampilkan data user sebelumnya ketika session berganti.
-    setData(null);
+    setData(userId ? readCachedData(userId) : null);
     setError('');
     void refresh().catch(() => { /* Error is rendered by the provider consumer. */ });
     return () => { requestId.current++; };
+  }, [refresh, userId]);
+
+  // Pick up changes made on another device when the user comes back to the
+  // app, without a loader: the cached data stays on screen meanwhile.
+  useEffect(() => {
+    const revalidate = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastFetchedAt.current < REVALIDATE_AFTER_MS) return;
+      void refresh().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', revalidate);
+    window.addEventListener('online', revalidate);
+    return () => {
+      document.removeEventListener('visibilitychange', revalidate);
+      window.removeEventListener('online', revalidate);
+    };
   }, [refresh]);
 
   const run = useCallback(async (action: () => Promise<void>) => {
     if (!userId) throw new Error(t('Please log in again.'));
-    await action();
+    setSaving((count) => count + 1);
     try {
-      await refresh();
-    } catch {
-      throw new Error(t('Changes were saved, but the latest data could not be loaded. Refresh the page before trying again.'));
+      await action();
+      try {
+        await refresh();
+      } catch {
+        throw new Error(t('Changes were saved, but the latest data could not be loaded. Refresh the page before trying again.'));
+      }
+    } finally {
+      setSaving((count) => count - 1);
     }
   }, [refresh, userId]);
 
-  const actions = useMemo((): Omit<AppDataValue, 'loading' | 'initialized' | 'error' | 'profile' | 'wallets' | 'categories' | 'transactions' | 'refresh'> => ({
+  const actions = useMemo((): Omit<AppDataValue, 'loading' | 'syncing' | 'initialized' | 'error' | 'profile' | 'wallets' | 'categories' | 'transactions' | 'refresh'> => ({
     addWallet: (payload) => run(() => db.createWallet(userId!, payload)),
     editWallet: (id, payload) => run(() => db.updateWallet(id, payload)),
     removeWallet: (id) => run(() => db.deleteWallet(id)),
@@ -102,10 +138,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     saveCurrencySettings: (currency, rate) => run(() => db.updateCurrencySettings(userId!, currency, rate))
   }), [run, userId]);
   const value = useMemo<AppDataValue>(() => ({
-    ...actions, loading, initialized: data !== null, error,
+    ...actions,
+    loading: saving > 0 || (data === null && fetching),
+    syncing: fetching,
+    initialized: data !== null,
+    error,
     profile: data?.profile || null, wallets: data?.wallets || [],
     categories: data?.categories || [], transactions: data?.transactions || [], refresh
-  }), [actions, loading, error, data, refresh]);
+  }), [actions, saving, fetching, error, data, refresh]);
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
 

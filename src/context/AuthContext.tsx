@@ -4,6 +4,7 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { t } from '../i18n';
+import { clearCachedData } from '../lib/dataCache';
 
 const NATIVE_AUTH_CALLBACK = 'com.rilsteel.maniapp://login-callback';
 const PASSWORD_RECOVERY_STORAGE_KEY = 'lega-password-recovery-session';
@@ -95,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPasswordRecovery(true);
         showPasswordResetPage();
       } else if (event === 'SIGNED_OUT') {
+        // Financial data cached for fast starts must not outlive the session.
+        clearCachedData();
         setStoredPasswordRecovery(false);
         setPasswordRecovery(false);
       }

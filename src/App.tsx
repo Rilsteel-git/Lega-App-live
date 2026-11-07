@@ -40,7 +40,7 @@ function preloadPages() {
 
 function AuthenticatedApp() {
   const [route, setRoute] = useState<Route>(getRoute());
-  const { error, loading, initialized, refresh } = useAppData();
+  const { error, loading, syncing, initialized, refresh } = useAppData();
   const { closeModal, closeConfirm } = useUi();
 
   useEffect(() => {
@@ -72,7 +72,7 @@ function AuthenticatedApp() {
           <div className="alert danger">
             <span><Icon name="alert" /></span>
             <div><strong>{t('Could not refresh your data')}</strong>{error}</div>
-            <button type="button" className="btn secondary" disabled={loading} onClick={() => void refresh().catch(() => {})}>{t('Try again')}</button>
+            <button type="button" className="btn secondary" disabled={syncing} onClick={() => void refresh().catch(() => {})}>{t('Try again')}</button>
           </div>
         )}
         <div aria-busy={loading}>
@@ -87,14 +87,14 @@ function AuthenticatedApp() {
               icon="alert"
               title={t('Could not load your data')}
               message={error}
-              actionLabel={loading ? t('Retrying…') : t('Try again')}
-              actionDisabled={loading}
+              actionLabel={syncing ? t('Retrying…') : t('Try again')}
+              actionDisabled={syncing}
               onAction={() => void refresh().catch(() => {})}
             />
           ) : loading ? <PageSkeleton /> : null}
         </div>
       </AppShell>
-      {loading && <Loading message={initialized ? t('Updating data') : t('Loading data')} />}
+      {loading && <Loading message={initialized ? t('Saving changes') : t('Loading data')} />}
       <ModalHost />
       <ToastStack />
     </>

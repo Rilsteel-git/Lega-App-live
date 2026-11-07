@@ -11,7 +11,7 @@ import { EMPTY_FILTERS, useUi } from '../context/UiContext';
 import { collapseTransfers, filterTransactions, totals, transferPeers } from '../lib/selectors';
 import { formatDateRelative, txCount } from '../lib/format';
 import { Icon } from '../components/IconSprite';
-import { Dropdown, EmptyState, Loading } from '../components/Ui';
+import { Dropdown, EmptyState } from '../components/Ui';
 import { RangeDatePicker } from '../components/DatePicker';
 import { TransactionRow } from '../components/rows';
 import { useDeleteTransfer } from '../components/Modals';
@@ -56,10 +56,10 @@ export function TransactionsPage() {
     filters.from,
     filters.to
   ].join('|');
-  const { visible, hasMore, loading, sentinel } = useIncrementalList(
+  const { visible, hasMore, sentinel } = useIncrementalList(
     filtered.length,
     TRANSACTION_BATCH_SIZE,
-    { delayMs: 800, resetKey: filterKey, rootMargin: '0px 0px 80px 0px' }
+    { resetKey: filterKey, rootMargin: '0px 0px 80px 0px' }
   );
   const visibleItems = filtered.slice(0, visible);
   const sums = totals(reportTransactions(filtered, currency, rate));
@@ -240,7 +240,6 @@ export function TransactionsPage() {
           )}
         </div>
         {hasMore && <div className="incremental-list-sentinel" ref={sentinel} aria-hidden="true" />}
-        {loading && <Loading message={t('Loading more transactions')} />}
       </article>
     </section>
   );

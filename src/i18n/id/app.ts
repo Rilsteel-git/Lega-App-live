@@ -5,7 +5,7 @@ export const app: Record<string, string> = {
   'Try again': 'Coba lagi',
   'Could not load your data': 'Tidak bisa memuat datamu',
   'Retrying…': 'Mencoba lagi…',
-  'Updating data': 'Memperbarui data',
+  'Saving changes': 'Menyimpan perubahan',
   'Loading data': 'Memuat data',
 
   // AppErrorBoundary
