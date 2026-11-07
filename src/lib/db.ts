@@ -60,7 +60,9 @@ export async function loadAppData(userId: string): Promise<AppData> {
   };
 }
 
-export async function createWallet(userId: string, payload: WalletPayload) {
+/* Create functions take the row id from the caller, so a row shown
+ * optimistically before the insert keeps the same id afterwards. */
+export async function createWallet(userId: string, payload: WalletPayload, id: string = crypto.randomUUID()) {
   const db = client();
   const { data: lastWallet, error: positionError } = await db.from('wallets')
     .select('position')
@@ -70,7 +72,7 @@ export async function createWallet(userId: string, payload: WalletPayload) {
     .limit(1)
     .maybeSingle();
   if (positionError) throw positionError;
-  const { error } = await db.from('wallets').insert({ user_id: userId, name: payload.name.trim(), type: payload.type, initial_balance: payload.initialBalance, currency: payload.currency, exchange_rate: payload.exchangeRate, position: Number(lastWallet?.position ?? -1) + 1 });
+  const { error } = await db.from('wallets').insert({ id, user_id: userId, name: payload.name.trim(), type: payload.type, initial_balance: payload.initialBalance, currency: payload.currency, exchange_rate: payload.exchangeRate, position: Number(lastWallet?.position ?? -1) + 1 });
   if (error) throw error;
 }
 
@@ -84,8 +86,8 @@ export async function deleteWallet(id: string) {
   if (error) throw error;
 }
 
-export async function createCategory(userId: string, payload: CategoryPayload) {
-  const { error } = await client().from('categories').insert({ user_id: userId, name: payload.name.trim(), type: payload.type, icon: payload.icon });
+export async function createCategory(userId: string, payload: CategoryPayload, id: string = crypto.randomUUID()) {
+  const { error } = await client().from('categories').insert({ id, user_id: userId, name: payload.name.trim(), type: payload.type, icon: payload.icon });
   if (error) throw error;
 }
 
@@ -127,8 +129,8 @@ export async function reorderWallets(ids: string[]) {
   if (failed?.error) throw failed.error;
 }
 
-export async function createTransaction(userId: string, payload: TransactionPayload) {
-  const { error } = await client().from('transactions').insert({ user_id: userId, wallet_id: payload.walletId, category_id: payload.categoryId, type: payload.type, amount: payload.amount, currency: payload.currency, exchange_rate: payload.exchangeRate, note: payload.note.trim(), date: payload.date });
+export async function createTransaction(userId: string, payload: TransactionPayload, id: string = crypto.randomUUID()) {
+  const { error } = await client().from('transactions').insert({ id, user_id: userId, wallet_id: payload.walletId, category_id: payload.categoryId, type: payload.type, amount: payload.amount, currency: payload.currency, exchange_rate: payload.exchangeRate, note: payload.note.trim(), date: payload.date });
   if (error) throw error;
 }
 
@@ -154,14 +156,19 @@ export async function deleteTransfer(pairId: string) {
  *  satu transaksi database (client Supabase JS nggak punya multi-statement
  *  transaction) — kalau leg kedua gagal, leg pertama dihapus lagi supaya
  *  nggak nyisa transfer yang cuma separuh jalan. */
-export async function createTransfer(userId: string, payload: TransferPayload) {
-  const pairId = crypto.randomUUID();
+export interface TransferIds { pairId: string; fromId: string; toId: string }
+
+export async function createTransfer(
+  userId: string,
+  payload: TransferPayload,
+  { pairId, fromId, toId }: TransferIds = { pairId: crypto.randomUUID(), fromId: crypto.randomUUID(), toId: crypto.randomUUID() }
+) {
   const note = payload.note.trim();
 
   const { data: fromRow, error: fromError } = await client()
     .from('transactions')
     .insert({
-      user_id: userId, wallet_id: payload.fromWalletId, category_id: null, type: 'expense',
+      id: fromId, user_id: userId, wallet_id: payload.fromWalletId, category_id: null, type: 'expense',
       amount: payload.fromAmount, currency: payload.fromCurrency, exchange_rate: payload.fromRate,
       note, date: payload.date, is_transfer: true, transfer_pair_id: pairId
     })
@@ -172,7 +179,7 @@ export async function createTransfer(userId: string, payload: TransferPayload) {
   const { error: toError } = await client()
     .from('transactions')
     .insert({
-      user_id: userId, wallet_id: payload.toWalletId, category_id: null, type: 'income',
+      id: toId, user_id: userId, wallet_id: payload.toWalletId, category_id: null, type: 'income',
       amount: payload.toAmount, currency: payload.toCurrency, exchange_rate: payload.toRate,
       note, date: payload.date, is_transfer: true, transfer_pair_id: pairId
     });
