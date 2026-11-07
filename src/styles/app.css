@@ -441,3 +441,14 @@
 .app-crash strong { font-size: 18px; }
 .app-crash p { margin: 0 0 8px; color: var(--muted); }
 .app-crash.page-crash { min-height: 0; padding: 48px 24px; }
+
+/* Pull to refresh (PullToRefresh.tsx). Sits just above the top edge and is
+   pulled into view; the transform is set inline from the finger position. */
+.pull-refresh {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) - 44px); left: 50%; z-index: 40;
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: #fff; color: var(--green); box-shadow: 0 6px 18px rgba(31, 52, 38, .16);
+  pointer-events: none;
+}
+.pull-refresh.refreshing { transition: transform .18s ease-out; }
+.pull-refresh-mark { display: block; width: 22px; height: 22px; }
