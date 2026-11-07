@@ -8,6 +8,11 @@ export const app: Record<string, string> = {
   'Updating data': 'Memperbarui data',
   'Loading data': 'Memuat data',
 
+  // AppErrorBoundary
+  'Something went wrong': 'Terjadi kesalahan',
+  'Reload Lega to continue.': 'Muat ulang Lega untuk melanjutkan.',
+  'Reload': 'Muat ulang',
+
   // SettingsPage
   'Settings': 'Pengaturan',
   'Language': 'Bahasa',
