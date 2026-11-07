@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import { AuthProvider } from './context/AuthContext';
 import { App } from './App';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { installStaleBuildReload } from './lib/staleBuildReload';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
@@ -24,10 +26,14 @@ if (Capacitor.isNativePlatform()) {
   void configureNativeStatusBar();
 }
 
+installStaleBuildReload();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </AppErrorBoundary>
   </StrictMode>
 );
