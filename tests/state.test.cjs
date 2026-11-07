@@ -42,7 +42,9 @@ function harness(file, mocks = {}) {
     module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022
   } }).outputText;
   const exports = {};
-  vm.runInNewContext(output, { exports, require(name) {
+  const listeners = { addEventListener() {}, removeEventListener() {} };
+  const globals = { document: { visibilityState: 'visible', ...listeners }, window: { ...listeners } };
+  vm.runInNewContext(output, { exports, ...globals, require(name) {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx: (type, props) => ({ type, props }) };
     if (name in mocks) return mocks[name];
@@ -59,9 +61,19 @@ function deferred() {
   return { promise, resolve, reject };
 }
 function data(name) { return { profile: { name }, wallets: [], categories: [], transactions: [] }; }
-function provider(db) {
+function memoryCache(initial = {}) {
+  const store = { ...initial };
+  return {
+    store,
+    readCachedData: (userId) => store[userId] ?? null,
+    writeCachedData: (userId, value) => { store[userId] = value; },
+    clearCachedData: () => { for (const key of Object.keys(store)) delete store[key]; }
+  };
+}
+function provider(db, cache = memoryCache()) {
   const h = harness('src/context/AppDataContext.tsx', {
     './AuthContext': { useAuth: () => ({ user: { id: 'test-user' } }) }, '../lib/db': db,
+    '../lib/dataCache': cache,
     '../i18n': { t: (text) => text, tp: (count, one, other) => (count === 1 ? one : other) }
   });
   return { ...h, value: () => h.render('AppDataProvider').props.value };
@@ -112,6 +124,37 @@ test('cleanup invalidates a pending initial load', async () => {
   await request.promise;
   await Promise.resolve();
   assert.equal(h.value().profile, null);
+});
+
+test('cached data shows immediately and refreshes in the background', async () => {
+  const request = deferred();
+  const cache = memoryCache({ 'test-user': data('cached') });
+  const h = provider({ loadAppData: () => request.promise }, cache);
+  const pending = h.value().refresh();
+  assert.equal(h.value().profile.name, 'cached');
+  assert.equal(h.value().initialized, true);
+  assert.equal(h.value().loading, false);
+  assert.equal(h.value().syncing, true);
+  request.resolve(data('fresh')); await pending;
+  assert.equal(h.value().profile.name, 'fresh');
+  assert.equal(h.value().syncing, false);
+  assert.equal(cache.store['test-user'].profile.name, 'fresh');
+});
+
+test('saving a change blocks with a loader until the reload finishes', async () => {
+  const reload = deferred();
+  let loads = 0;
+  const h = provider({
+    createWallet: async () => {},
+    loadAppData: () => (++loads === 1 ? Promise.resolve(data('before')) : reload.promise)
+  });
+  await h.value().refresh();
+  assert.equal(h.value().loading, false);
+  const saving = h.value().addWallet({ name: 'Test' });
+  assert.equal(h.value().loading, true);
+  reload.resolve(data('after')); await saving;
+  assert.equal(h.value().loading, false);
+  assert.equal(h.value().profile.name, 'after');
 });
 
 test('editing one field clears only its validation error', () => {

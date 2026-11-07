@@ -15,17 +15,23 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <!-- Shown until React mounts, so a slow cold start isn't an empty screen.
-     The logo matches the Android PWA splash that fades into it: the maskable
-     icon's green square is about 90px there and sits about 10px above the
-     center of the page area, so the handoff doesn't show a second logo. -->
+     Same animated mark and size as <Loading /> (src/components/Ui.tsx), so
+     the boot screen, the session check and data loading read as one loader. -->
 <style>
 html,body{margin:0;background:#f4f6f4}
-.boot-splash{position:fixed;inset:0;display:grid;place-items:center;background:#f4f6f4}
-.boot-splash img{width:90px;height:90px;transform:translateY(-10px)}
+.boot-splash{position:fixed;inset:0;display:grid;place-items:center;background:#f4f6f4;color:#0b7a43}
+.boot-splash svg{width:clamp(88px,13vw,116px);height:clamp(88px,13vw,116px);overflow:visible;filter:drop-shadow(0 8px 16px rgba(11,122,67,.22))}
+.boot-stroke{stroke-dasharray:100;stroke-dashoffset:100;animation:boot-draw 1.6s cubic-bezier(.65,0,.35,1) infinite}
+.boot-coin{transform-box:fill-box;transform-origin:50% 50%;animation:boot-coin 1.6s cubic-bezier(.34,1.56,.64,1) infinite}
+.boot-fade{animation:boot-fade 1.6s ease infinite}
+@keyframes boot-draw{0%{stroke-dashoffset:100}40%,100%{stroke-dashoffset:0}}
+@keyframes boot-coin{0%,35%{transform:translateY(-24px) scale(0);opacity:0}55%,100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes boot-fade{0%,80%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.boot-stroke,.boot-coin,.boot-fade{animation:none;stroke-dashoffset:0}}
 </style>
 </head>
 <body>
-<div id="root"><div class="boot-splash" aria-label="Lega"><img src="/brand/lega-app-icon.svg" alt="" /></div></div>
+<div id="root"><div class="boot-splash" role="status" aria-label="Lega"><svg viewBox="16 4 100 112" aria-hidden="true"><g class="boot-fade"><path class="boot-stroke" pathLength="100" d="M36 24 V68 C36 84 48 96 64 96 C80 96 92 86 96 70" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/><circle class="boot-coin" cx="86" cy="34" r="13" fill="currentColor"/></g></svg></div></div>
 <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

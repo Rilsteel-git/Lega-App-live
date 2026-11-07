@@ -11,7 +11,7 @@ import { useUi } from '../context/UiContext';
 import { categoriesByType, categoryTransactionCount } from '../lib/selectors';
 import { txCount } from '../lib/format';
 import { Icon } from '../components/IconSprite';
-import { CategoryIcon, EmptyState, Loading, Segmented } from '../components/Ui';
+import { CategoryIcon, EmptyState, Segmented } from '../components/Ui';
 import { useDeleteCategory } from '../components/Modals';
 import { useReorderableList } from '../hooks/useReorderableList';
 import { useIncrementalList } from '../hooks/useIncrementalList';
@@ -34,10 +34,9 @@ export function CategoriesPage() {
   const { order, containerRef, draggingId } = useReorderableList(activeIds, handleReorder);
   const sameSet = order.length === list.length && order.every((id) => list.some((category) => category.id === id));
   const orderedList = sameSet ? order.map((id) => list.find((category) => category.id === id)!) : list;
-  // Lima kategori per batch. Item lama tetap terlihat; hanya batch yang baru
-  // diminta lewat scroll yang menampilkan loader Lega sebelum ditambahkan.
-  const { visible, hasMore, loading, sentinel } = useIncrementalList(orderedList.length, 10, {
-    delayMs: 800,
+  // The list is already in memory, so the next batch renders right away
+  // instead of behind a loader.
+  const { visible, hasMore, sentinel } = useIncrementalList(orderedList.length, 10, {
     resetKey: type,
     rootMargin: '0px 0px 48px 0px'
   });
@@ -119,7 +118,6 @@ export function CategoriesPage() {
           )}
 
           {hasMore && <div className="incremental-list-sentinel" ref={sentinel} aria-hidden="true" />}
-          {loading && <Loading message={t('Loading more categories')} />}
 
           {archived.length > 0 && (
             <div className="category-archive">

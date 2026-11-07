@@ -60,7 +60,6 @@ export const pages: Record<string, string> = {
   'Collapse all': 'Tutup semua',
   'No results found': 'Tidak ada hasil',
   'Try a different search, or clear the filters.': 'Coba pencarian lain, atau hapus filter.',
-  'Loading more transactions': 'Memuat transaksi berikutnya',
 
   // Wallets
   'Wallet order updated': 'Urutan dompet diperbarui',
@@ -88,7 +87,6 @@ export const pages: Record<string, string> = {
   'No income categories yet': 'Belum ada kategori pemasukan',
   'No expense categories yet': 'Belum ada kategori pengeluaran',
   'Add one so your transactions can be grouped neatly.': 'Tambahkan satu supaya transaksimu terkelompok rapi.',
-  'Loading more categories': 'Memuat kategori berikutnya',
   'Archived': 'Diarsipkan',
   'Restore': 'Pulihkan',
   'New category': 'Kategori baru',
