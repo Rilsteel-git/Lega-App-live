@@ -10,7 +10,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from '../i18n';
-import { LegaLoader, LegaMark } from './Ui';
 
 /** Finger travel is halved so the indicator trails the finger. */
 const RESISTANCE = 0.5;
@@ -103,9 +102,15 @@ export function PullToRefresh({ onRefresh }: { onRefresh: () => Promise<unknown>
       aria-live="polite"
       aria-label={refreshing ? t('Refreshing') : progress >= 1 ? t('Release to refresh') : t('Pull to refresh')}
     >
-      {refreshing
-        ? <LegaLoader className="pull-refresh-mark" />
-        : <span className="pull-refresh-mark" style={{ opacity: 0.35 + progress * 0.65, transform: `rotate(${progress * 270 - 270}deg)` }}><LegaMark /></span>}
+      {/* A plain ring: it fills as you pull, then spins while refreshing. */}
+      <svg className="pull-refresh-ring" viewBox="0 0 24 24" aria-hidden="true">
+        <circle
+          cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          pathLength={100}
+          strokeDasharray={refreshing ? '70 100' : `${Math.max(progress * 80, 4)} 100`}
+          style={{ opacity: refreshing ? 1 : 0.35 + progress * 0.65 }}
+        />
+      </svg>
     </div>,
     document.body
   );
