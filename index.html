@@ -14,11 +14,14 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<!-- Shown until React mounts, so a slow cold start isn't an empty screen. -->
+<!-- Shown until React mounts, so a slow cold start isn't an empty screen.
+     The logo matches the Android PWA splash that fades into it: the maskable
+     icon's green square is about 90px there and sits about 10px above the
+     center of the page area, so the handoff doesn't show a second logo. -->
 <style>
 html,body{margin:0;background:#f4f6f4}
 .boot-splash{position:fixed;inset:0;display:grid;place-items:center;background:#f4f6f4}
-.boot-splash img{width:96px;height:96px}
+.boot-splash img{width:90px;height:90px;transform:translateY(-10px)}
 </style>
 </head>
 <body>
