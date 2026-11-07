@@ -163,7 +163,7 @@ export const pages: Record<string, string> = {
   'Today': 'Hari ini',
 
   // UiContext
-  '× Error': '× Galat',
+  '× Failed': '× Gagal',
   '✓ Done': '✓ Selesai',
   'Dismiss notification': 'Tutup notifikasi'
 };

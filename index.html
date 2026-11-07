@@ -14,9 +14,15 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<!-- Shown until React mounts, so a slow cold start isn't an empty screen. -->
+<style>
+html,body{margin:0;background:#f4f6f4}
+.boot-splash{position:fixed;inset:0;display:grid;place-items:center;background:#f4f6f4}
+.boot-splash img{width:96px;height:96px}
+</style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div class="boot-splash" aria-label="Lega"><img src="/brand/lega-app-icon.svg" alt="" /></div></div>
 <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

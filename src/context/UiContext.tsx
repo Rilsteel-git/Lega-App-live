@@ -122,7 +122,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
     const variant = options.variant || 'success';
     const id = ++toastId;
     const title = variant === 'error'
-      ? (options.title || t('× Error'))
+      ? (options.title || t('× Failed'))
       : (options.title || t('✓ Done'));
     setToasts((list) => list.concat({ id, title, message, variant }));
     const timer = window.setTimeout(() => dismissToast(id), variant === 'error' ? 6000 : 3400);
