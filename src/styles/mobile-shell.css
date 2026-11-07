@@ -360,8 +360,8 @@ body { background: #eef1ee; overscroll-behavior-y: none }
 /* ------------------------------------------------------------
    6. Laporan per kategori — bisa dibuka untuk melihat itemnya
    ------------------------------------------------------------ */
-.breakdown { display: grid; gap: 4px }
-.breakdown-row { display: grid; gap: 7px; padding: 10px; border-radius: 16px; transition: background .16s }
+.breakdown { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px }
+.breakdown-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 10px; border-radius: 16px; transition: background .16s }
 .breakdown-row.open { background: #f7faf7 }
 .breakdown-top {
   display: grid;
@@ -384,7 +384,7 @@ body { background: #eef1ee; overscroll-behavior-y: none }
 .breakdown-chevron { display: grid; place-items: center; color: var(--muted); transition: transform .18s }
 .breakdown-chevron .svg-icon { width: 16px; height: 16px; stroke-width: 2 }
 .breakdown-row.open .breakdown-chevron { transform: rotate(180deg); color: var(--green) }
-.breakdown-items { display: none; gap: 2px; margin-top: 2px; padding-top: 6px; border-top: 1px dashed #dfe6df }
+.breakdown-items { display: none; grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 2px; padding-top: 6px; border-top: 1px dashed #dfe6df }
 .breakdown-row.open .breakdown-items { display: grid }
 .breakdown-item {
   display: flex;
@@ -403,7 +403,9 @@ body { background: #eef1ee; overscroll-behavior-y: none }
   appearance: none;
 }
 .breakdown-item:hover { background: #fff }
-.breakdown-item-body { min-width: 0 }
+/* min-width: 0 + flex: 1 let the title shrink so its ellipsis applies;
+   without them a long note widens the whole list and the page. */
+.breakdown-item-body { flex: 1 1 auto; min-width: 0 }
 .breakdown-item-title { display: block; overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap }
 .breakdown-item-body small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px }
 .breakdown-item-amount { color: var(--red); font-size: 12px; font-weight: 750; white-space: nowrap }
